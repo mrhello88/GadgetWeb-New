@@ -26,6 +26,7 @@ type categoryData = {
 export const AddProduct = createAsyncThunk(
   'product/AddProduct',
   async (productData: productData, thunkApi) => {
+    console.log(productData)
     try {
       const response = await axiosInstance.post('/graphql', {
         query: `
@@ -68,6 +69,7 @@ export const AddProduct = createAsyncThunk(
         `,
         variables: productData,
       });
+      console.log(response)
       if (response?.data.data.addProduct.statusCode === 201) {
         return response?.data.data.addProduct || 'add Product in successfully';
       }

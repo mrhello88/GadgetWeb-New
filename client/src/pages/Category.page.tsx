@@ -456,7 +456,7 @@ const CategoryPage: React.FC = () => {
                               src={
                                 product.images[0]?.startsWith('http')
                                   ? product.images[0]
-                                  : `${import.meta.env.VITE_API_URL}/images/${category.image}`
+                                  : `${import.meta.env.VITE_API_URL}/images/${product.images[0]}`
                               }
                               alt={product.name}
                               className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"

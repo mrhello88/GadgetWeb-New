@@ -202,6 +202,7 @@ export const getReviewsByProduct = createAsyncThunk(
 export const getReviewsByUser = createAsyncThunk(
   'review/getReviewsByUser',
   async ({ userId, limit = 10, offset = 0 }: { userId: string; limit?: number; offset?: number }, thunkApi) => {
+    console.log(userId)
     try {
       const response = await axiosInstance.post('/graphql', {
         query: `
@@ -246,7 +247,7 @@ export const getReviewsByUser = createAsyncThunk(
           offset
         },
       });
-
+      console.log(response)
       if (response?.data.data.getReviewsByUser.statusCode === 200) {
         return response?.data.data.getReviewsByUser;
       }

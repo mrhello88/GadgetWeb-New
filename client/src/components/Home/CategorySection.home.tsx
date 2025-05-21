@@ -11,7 +11,7 @@ import { GetProductsByCategory } from '../../hooks/store/thunk/product.thunk';
 import type { productByCategory } from '../../hooks/store/slice/product.slices';
 
 type ProductCardProps = {
-  title: string;
+  title: string; 
   description: string;
   image: string;
   icon: React.ReactNode;
@@ -33,7 +33,7 @@ const ProductCard = ({ title, description, image, icon, delay, link }: ProductCa
         src={
           image.startsWith('http')
             ? image
-            : `${import.meta.env.VITE_API_URL}/images/${image}`
+            : `${import.meta.env.VITE_API_URL}/categoryImage/${image}`
         }
         alt={title}
         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"

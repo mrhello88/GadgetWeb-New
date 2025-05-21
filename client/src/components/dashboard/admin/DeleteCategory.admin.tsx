@@ -127,11 +127,10 @@ const DeleteCategoryComponent = () => {
               <div className="relative h-36 sm:h-40 md:h-48">
                 <img
                   src={
-                    category.image
-                      ? category.image.startsWith('http')
+                        category.image?.startsWith('http')
                         ? category.image
-                        : `${import.meta.env.VITE_API_URL}/categoryImages/${category.image}`
-                      : '/placeholder.svg'
+                        : `${import.meta.env.VITE_API_URL}/categoryImage/${category.image}`
+                
                   }
                   alt={category.category}
                   className="w-full h-full object-cover"
