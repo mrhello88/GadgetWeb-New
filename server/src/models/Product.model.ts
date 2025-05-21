@@ -70,7 +70,7 @@ const productSchema = new Schema<IProduct>({
   category: {
     type: String,
     required: true,
-    enum: ['smartphones', 'laptops', 'smartwatches', 'headphones'],
+   
   },
   brand: {
     type: String,
