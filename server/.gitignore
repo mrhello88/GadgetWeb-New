@@ -1,0 +1,30 @@
+# Node.js dependencies
+/node_modules/
+
+# TypeScript output
+/dist/
+/build/
+
+# dotenv environment variables
+.env
+
+# Logs
+*.log
+
+# TypeScript cache
+*.tsbuildinfo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE/editor files (optional)
+.vscode/
+.idea/
+*.sublime-workspace
+
+# npm package lock file
+package-lock.json
+
+# Yarn lock file (if you are using Yarn)
+y
