@@ -10,11 +10,14 @@ export const useProfileLoader = () => {
   
   useEffect(() => {
     const token = localStorage.getItem('token');
-    // Only fetch if we have a token and don't already have the data
-    if (token && (!data || !data.data)) {
+    if (!token) {
+      // If no token, ensure user state is cleared
+      dispatch({ type: 'user/isLoggedInUser', payload: { isLoggedIn: false, isAdmin: false } });
+    } else if (!data || !data.data) {
+      // Only fetch if we have a token and don't already have the data
       dispatch(getCurrentUserProfile());
     }
   }, [dispatch, data]);
   
   return { isLoaded: !!data?.data };
-}; 
+};

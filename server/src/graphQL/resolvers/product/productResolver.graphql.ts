@@ -1,5 +1,6 @@
 import { ProductModel } from '../../../models/Product.model';
 import { CategoryModel } from '../../../models/Category.model';
+import { ReviewModel } from '../../../models/Review.model';
 import path from 'path';
 import { Types } from 'mongoose';
 import fs from 'fs';
@@ -285,7 +286,8 @@ export const productResolver = {
 
     deleteProduct: async (_: any, { _id }: { _id: String }) => {
       try {
-        const product = await ProductModel.findByIdAndDelete(_id);
+        // First find the product to get its category
+        const product = await ProductModel.findById(_id);
         if (!product) {
           return {
             success: false,
@@ -294,13 +296,40 @@ export const productResolver = {
             statusCode: 404,
           };
         }
+
+        // Delete all reviews associated with the product
+        await ReviewModel.deleteMany({ productId: _id });
+
+        // Delete the product's images if they exist
+        if (product.images && product.images.length > 0) {
+          product.images.forEach(image => {
+            // Only delete if it's a local image (not an external URL)
+            if (!image.startsWith('http')) {
+              const imagePath = path.join(__dirname, '../../../public/images', image);
+              if (fs.existsSync(imagePath)) {
+                fs.unlinkSync(imagePath);
+              }
+            }
+          });
+        }
+
+        // Remove product reference from the category
+        await CategoryModel.updateOne(
+          { category: product.category },
+          { $pull: { products: product._id } }
+        );
+
+        // Delete the product
+        await ProductModel.findByIdAndDelete(_id);
+
         return {
           success: true,
-          message: 'Product deleted successfully',
-          data: null,
+          message: 'Product, related images, and associated reviews deleted successfully',
+          data: product,
           statusCode: 200,
         };
       } catch (error: any) {
+        console.error('Error deleting product:', error);
         return {
           success: false,
           message: error.message,

@@ -62,6 +62,8 @@ const userSlice = createSlice({
       localStorage.removeItem('token');
       state.isLoggedIn = false;
       state.isAdmin = false;
+      state.data = null;
+      state.token = null;
     },
     isLoggedInUser: (state, action: PayloadAction<{ isLoggedIn: boolean; isAdmin: boolean }>) => {
       state.isLoggedIn = action.payload.isLoggedIn;

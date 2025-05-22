@@ -3,8 +3,18 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Twitter, Mail, Phone, MapPin, ExternalLink } from 'lucide-react';
+import { useSelector } from 'react-redux';
+import { useEffect } from 'react';
+import { RootState } from '../../hooks/store/store';
 
-const Footer = () => {
+const Footer = () => {  // Get authentication state
+  const { isLoggedIn, token } = useSelector((state: RootState) => state.user);
+
+  // Effect to force re-render when auth state changes
+  useEffect(() => {
+    // This effect will run whenever isLoggedIn or token changes
+  }, [isLoggedIn, token]);
+
   // Animation variants for staggered animations
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -25,6 +35,15 @@ const Footer = () => {
       transition: { type: 'spring', stiffness: 300, damping: 24 },
     },
   };
+
+  // Define navigation links
+  const navLinks = [
+    { to: '/', label: 'Home' },
+    { to: '/about', label: 'About' },
+    { to: '/categories', label: 'Categories' },
+    // Only show admin login if user is not logged in
+    ...(!isLoggedIn ? [{ to: '/admin/login', label: 'Admin login' }] : []),
+  ];
 
   return (
     <footer className="relative overflow-hidden bg-gray-50 border-t border-gray-200">
@@ -73,13 +92,7 @@ const Footer = () => {
               </span>
             </motion.h3>
             <ul className="space-y-3">
-              {[
-                { to: '/', label: 'Home' },
-                { to: '/about', label: 'About' },
-                { to: '/services', label: 'Services' },
-                { to: '/categories', label: 'Categories' },
-                { to: '/admin/login', label: 'Admin login' },
-              ].map((link, index) => (
+              {navLinks.map((link, index) => (
                 <motion.li key={index} variants={itemVariants}>
                   <Link
                     to={link.to}

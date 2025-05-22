@@ -226,6 +226,20 @@ const Navbar = () => {
     setShowProfileDropdown(false);
   };
 
+  const handleLogout = () => {
+    // First clear the token to prevent future auto-login attempts
+    localStorage.removeItem('token');
+    // Dispatch logout action to clear all user state
+    dispatch(logOutUser());
+    // Force a re-render of auth-dependent components
+    dispatch({ type: 'user/isLoggedInUser', payload: { isLoggedIn: false, isAdmin: false } });
+    // Close dropdown
+    setShowProfileDropdown(false);
+    // Navigate and show message
+    navigate('/', { replace: true });
+    toast.info('You have been logged out');
+  };
+
   return (
     <motion.nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -383,11 +397,7 @@ const Navbar = () => {
                     <span>Profile</span>
                   </div>
                   <div 
-                    onClick={() => {
-                      dispatch(logOutUser());
-                      toast.info('You have been logged out');
-                      setShowProfileDropdown(false);
-                    }}
+                    onClick={handleLogout}
                     className="px-4 py-2 text-red-500 hover:bg-gray-100 cursor-pointer border-t border-gray-100"
                   >
                     <span>Logout</span>
@@ -443,11 +453,7 @@ const Navbar = () => {
                     <span>Profile</span>
                   </div>
                   <div 
-                    onClick={() => {
-                      dispatch(logOutUser());
-                      toast.info('You have been logged out');
-                      setShowProfileDropdown(false);
-                    }}
+                    onClick={handleLogout}
                     className="px-4 py-2 text-red-500 hover:bg-gray-100 cursor-pointer border-t border-gray-100"
                   >
                     <span>Logout</span>

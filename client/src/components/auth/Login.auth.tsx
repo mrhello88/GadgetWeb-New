@@ -5,7 +5,8 @@ import { AppDispatch } from '../../hooks/store/store';
 import { storeTokenInLocalStorage } from '../../hooks/store/slice/user.slices';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { validateEmail, validatePassword } from '../../utils/validation';
+import { validateEmail } from '../../utils/validation';
+import { getCurrentUserProfile } from '../../hooks/store/thunk/user.thunk';
 
 export const Login = ({ role }: { role: string }) => {
   const [email, setEmail] = useState('');
@@ -42,12 +43,15 @@ export const Login = ({ role }: { role: string }) => {
       dispatch(LoginUser({ email, password, isAdmin })).then(({ payload }) => {
         if (payload?.success) {
           dispatch(storeTokenInLocalStorage({ token: payload.token, isAdmin }));
-          if (isAdmin) {
-            navigate('/dashboard');
-          } else {
-            navigate('/');
-          }
-          toast.success(payload.message);
+          // Fetch user profile data immediately after login
+          dispatch(getCurrentUserProfile()).then(() => {
+            if (isAdmin) {
+              navigate('/dashboard');
+            } else {
+              navigate('/');
+            }
+            toast.success(payload.message);
+          });
         } else {
           toast.error(payload.message || 'Login Failed!');
           navigate(isAdmin ? '/admin/login' : '/user/login');

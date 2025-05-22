@@ -270,24 +270,30 @@ const UpdateProductPage = () => {
     setPreviewImages([]);
   };
 
-  // Handle input change
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
+  // Get category label for display
+// const getCategoryLabel = (categoryValue: string): string => {
+//   const category = categoryOptions.find(opt => opt.value === categoryValue);
+//   return category ? category.label : categoryValue;
+// };
 
-    // Handle numeric values
-    if (name === 'price') {
-      setProductForm((prev) => ({
-        ...prev,
-        [name]: parseFloat(value) || 0,
-      }));
-    } else {
-      setProductForm((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
+// Handle input change
+const handleInputChange = (
+  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+) => {
+  const { name, value } = e.target;
+
+  // Handle numeric values
+  if (name === 'price') {
+    setProductForm((prev) => ({
+      ...prev,
+      [name]: parseFloat(value) || 0,
+    }));
+  } else {
+    setProductForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  }
 
     // Clear error when field is updated
     if (formErrors[name]) {
@@ -808,37 +814,18 @@ const UpdateProductPage = () => {
                 {formErrors.brand && (
                   <p className="mt-1 text-sm text-red-600">{formErrors.brand}</p>
                 )}
-              </motion.div>
-
-              {/* Category */}
+              </motion.div>              {/* Category - Read Only */}
               <motion.div variants={fadeInUp}>
-                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-                  Category*
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Category
                 </label>
-                <div className="relative">
-                  <select
-                    id="category"
-                    name="category"
-                    value={productForm.category}
-                    onChange={handleInputChange}
-                    className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none bg-white ${
-                      formErrors.category ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                    }`}
-                  >
-                    <option value="">Select a category</option>
-                    {categoryOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
-                    <CategoryIcon category={productForm.category || ''} />
-                  </div>
+                <div className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 flex items-center gap-2">
+                  <CategoryIcon category={productForm.category || ''} />
+                  <span className="text-gray-700">
+                    {categoryOptions.find(opt => opt.value === productForm.category)?.label || productForm.category}
+                  </span>
                 </div>
-                {formErrors.category && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.category}</p>
-                )}
+                <p className="mt-1 text-sm text-gray-500">Category cannot be changed</p>
               </motion.div>
 
               {/* Price */}
