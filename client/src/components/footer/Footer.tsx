@@ -1,19 +1,15 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Facebook, Instagram, Twitter, Mail, Phone, MapPin, ExternalLink } from 'lucide-react';
 import { useSelector } from 'react-redux';
-import { useEffect } from 'react';
 import { RootState } from '../../hooks/store/store';
 
-const Footer = () => {  // Get authentication state
-  const { isLoggedIn, token } = useSelector((state: RootState) => state.user);
-
-  // Effect to force re-render when auth state changes
-  useEffect(() => {
-    // This effect will run whenever isLoggedIn or token changes
-  }, [isLoggedIn, token]);
+const Footer = () => {
+  // Get authentication state
+  const { isLoggedIn } = useSelector((state: RootState) => state.user);
+  const location = useLocation();
 
   // Animation variants for staggered animations
   const containerVariants = {
@@ -36,17 +32,18 @@ const Footer = () => {  // Get authentication state
     },
   };
 
-  // Define navigation links
+  // Define navigation links (without admin login)
   const navLinks = [
     { to: '/', label: 'Home' },
     { to: '/about', label: 'About' },
     { to: '/categories', label: 'Categories' },
-    // Only show admin login if user is not logged in
-    ...(!isLoggedIn ? [{ to: '/admin/login', label: 'Admin login' }] : []),
   ];
 
   return (
-    <footer className="relative overflow-hidden bg-gray-50 border-t border-gray-200">
+    <footer
+      key={isLoggedIn + location.pathname} // force re-render on login/logout or route change
+      className="relative overflow-hidden bg-gray-50 border-t border-gray-200"
+    >
       {/* Decorative elements */}
       <motion.div
         className="absolute top-10 right-[5%] h-16 w-16 rounded-full border-4 border-teal-400/30"
@@ -108,6 +105,23 @@ const Footer = () => {  // Get authentication state
                   </Link>
                 </motion.li>
               ))}
+              {/* Render admin login link separately if not logged in */}
+              {!isLoggedIn && (
+                <motion.li key="admin-login-link" variants={itemVariants}>
+                  <Link
+                    to="/admin/login"
+                    className="text-base text-gray-600 hover:text-teal-600 transition-colors duration-200 inline-flex items-center group"
+                  >
+                    <motion.span
+                      className="inline-block w-1 h-1 rounded-full bg-teal-500 mr-2 opacity-0 group-hover:opacity-100"
+                      initial={{ scale: 0 }}
+                      whileInView={{ scale: 1 }}
+                      transition={{ delay: 0.3 + navLinks.length * 0.1 }}
+                    />
+                    Admin login
+                  </Link>
+                </motion.li>
+              )}
             </ul>
           </motion.div>
 
