@@ -1,7 +1,7 @@
 // CategoryPage.tsx
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
@@ -9,18 +9,12 @@ import {
   ChevronDown,
   ChevronRight,
   Filter,
-  Star,
   X,
-  Smartphone,
-  Laptop,
-  Headphones,
-  Tablet,
   BarChart3,
-  Watch,
 } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../hooks/store/store';
-import { useAppDispatch, useAppSelector } from '../hooks/store/hooks';
+import { useAppDispatch } from '../hooks/store/hooks';
 import { GetProductsByCategory } from '../hooks/store/thunk/product.thunk';
 import type {
   Product,
@@ -30,217 +24,179 @@ import type {
   DeleteProductResponse,
 } from '../hooks/store/slice/product.slices';
 
-// Import animation variants from your existing code
 const fadeIn = {
   hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { duration: 0.6, ease: 'easeOut' },
-  },
+  visible: { opacity: 1, transition: { duration: 0.6, ease: 'easeOut' } },
 };
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 40 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.6, ease: 'easeOut' },
-  },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } },
 };
 
 const staggerContainer = {
   hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
 };
 
-// Category icons mapping - using a more generic approach
-const CategoryIcon = ({ category }: { category: string }) => {
-  // Use a generic icon for all categories since we don't know what categories exist
-  return <BarChart3 className="h-5 w-5" />;
-};
+const CategoryIcon = ({ category }: { category: string }) => (
+  <BarChart3 className="h-5 w-5" />
+);
 
-// Interface for filter options
 interface FilterOption {
   name: string;
   options: string[];
 }
 
-// Type guard for productByCategoryResponse
 const isProductByCategoryResponse = (
   response: productResponse | productByCategoryResponse | DeleteProductResponse | null
 ): response is productByCategoryResponse => {
-  if (!response) return false;
-  if (!('success' in response)) return false;
-  if (!('data' in response)) return false;
-  if (!('message' in response)) return false;
-  if (!('statusCode' in response)) return false;
-  return response.success && Array.isArray(response.data);
+  return !!(
+    response &&
+    'success' in response &&
+    'data' in response &&
+    'message' in response &&
+    'statusCode' in response &&
+    response.success &&
+    Array.isArray(response.data)
+  );
 };
 
-// Extended Product type with optional rating fields
 interface ExtendedProduct extends Product {
   rating?: number;
   reviewCount?: number;
 }
 
-// Function to generate filters from products
-const generateFiltersFromProducts = (products: ExtendedProduct[]): FilterOption[] => {
-  // Create a Map to store unique values for each specification
-  const filterMap = new Map<string, Set<string>>();
+/**
+ * Build filters from the 5 most-common spec names in `products`.
+ */
+const generateTopFiveFilters = (products: ExtendedProduct[]): FilterOption[] => {
+  // 1) count frequency of each spec name
+  const freq = new Map<string, number>();
+  products.forEach((p) =>
+    p.specifications.forEach((s) =>
+      freq.set(s.name, (freq.get(s.name) || 0) + 1)
+    )
+  );
 
-  // Process each product's specifications
-  products.forEach((product) => {
-    // Add specification-based filters
-    product.specifications.forEach((spec) => {
-      if (!filterMap.has(spec.name)) {
-        filterMap.set(spec.name, new Set());
-      }
-      filterMap.get(spec.name)?.add(spec.value);
-    });
+  // 2) pick top 5 spec names by descending count
+  const topNames = Array.from(freq.entries())
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5)
+    .map(([name]) => name);
+
+  // 3) for each top name, collect unique values
+  return topNames.map((name) => {
+    const vals = new Set<string>();
+    products.forEach((p) =>
+      p.specifications
+        .filter((s) => s.name === name)
+        .forEach((s) => vals.add(s.value))
+    );
+    return { name, options: Array.from(vals).sort() };
   });
-
-  // Convert Map to array of filter objects and sort by number of options
-  const filters = Array.from(filterMap)
-    .map(([name, options]) => ({
-      name,
-      options: Array.from(options).sort(),
-    }))
-    .filter((filter) => filter.options.length > 0) // Only include filters with options
-    .sort((a, b) => b.options.length - a.options.length); // Sort by number of options
-
-  // Return top 5 filters or all if less than 5
-  return filters.slice(0, 5);
 };
 
-// Main CategoryPage component
 const SpecificCategoryPage = () => {
-  const [productsByCategory, setProductsByCategory] = useState<productByCategory[]>([]);
+  const dispatch = useAppDispatch();
   const { data, loading } = useSelector((state: RootState) => state.product);
+  const [productsByCategory, setProductsByCategory] = useState<productByCategory[]>([]);
   const [products, setProducts] = useState<ExtendedProduct[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<ExtendedProduct[]>([]);
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [expandedFilters, setExpandedFilters] = useState<string[]>([]);
   const [sortOption, setSortOption] = useState<string>('featured');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [categoryFilters, setCategoryFilters] = useState<FilterOption[]>([]);
   const { category } = useParams<{ category: string }>();
 
-  // Get categories from Redux data
+  // fetch on mount/category change
   useEffect(() => {
-    if (data && isProductByCategoryResponse(data)) {
+    if (category) {
+      dispatch(GetProductsByCategory(category));
+    }
+  }, [dispatch, category]);
+
+  // respond to redux data
+  useEffect(() => {
+    if (isProductByCategoryResponse(data)) {
       setProductsByCategory(data.data || []);
     } else {
+      setProductsByCategory([]);
       console.error('Unexpected data format:', data);
-      setProductsByCategory([]); // Set empty array as fallback
     }
   }, [data]);
 
-  // Update products and generate filters
+  // update products + filters when category or data updates
   useEffect(() => {
-    if (category && productsByCategory.length > 0) {
-      const selectedCategory = productsByCategory.find((cat) => cat._id === category);
-      const categoryProducts = selectedCategory ? selectedCategory.products : [];
-      setProducts(categoryProducts);
-      setFilteredProducts(categoryProducts);
-
-      // Generate dynamic filters (limited to 5)
-      const filters = generateFiltersFromProducts(categoryProducts);
-      setCategoryFilters(filters);
-
-      // Reset active filters
-      setActiveFilters({});
-      setExpandedFilters([]);
-    }
+    if (!category) return;
+    const cat = productsByCategory.find((c) => c._id === category);
+    const prods: ExtendedProduct[] = cat ? cat.products : [];
+    setProducts(prods);
+    setFilteredProducts(prods);
+    // build the top-5 most common spec filters
+    setCategoryFilters(generateTopFiveFilters(prods));
+    // clear filters for fresh view
+    setActiveFilters({});
+    setExpandedFilters([]);
   }, [category, productsByCategory]);
 
-  // Sort products by rating (high to low)
-  const sortByRating = (a: ExtendedProduct, b: ExtendedProduct): number => {
-    const ratingA = a.rating || 0;
-    const ratingB = b.rating || 0;
-    return ratingB - ratingA;
-  };
+  const [categoryFilters, setCategoryFilters] = useState<FilterOption[]>([]);
 
-  // Sort products by price (low to high)
-  const sortByPrice = (a: ExtendedProduct, b: ExtendedProduct): number => {
-    return parseFloat(a.price) - parseFloat(b.price);
-  };
+  // sorting helpers
+  const sortByRating = (a: ExtendedProduct, b: ExtendedProduct) =>
+    (b.rating || 0) - (a.rating || 0);
+  const sortByPrice = (a: ExtendedProduct, b: ExtendedProduct) =>
+    parseFloat(a.price) - parseFloat(b.price);
+  const sortByName = (a: ExtendedProduct, b: ExtendedProduct) =>
+    a.name.localeCompare(b.name);
 
-  // Sort products by name (A to Z)
-  const sortByName = (a: ExtendedProduct, b: ExtendedProduct): number => {
-    return a.name.localeCompare(b.name);
-  };
-
-  // Apply sorting
-  const applySorting = (productsToSort: ExtendedProduct[], sortType: string): ExtendedProduct[] => {
-    switch (sortType) {
+  const applySorting = (arr: ExtendedProduct[], type: string) => {
+    switch (type) {
       case 'rating':
-        return [...productsToSort].sort(sortByRating);
-      case 'price':
-        return [...productsToSort].sort(sortByPrice);
+        return [...arr].sort(sortByRating);
+      case 'price-low':
+        return [...arr].sort(sortByPrice);
+      case 'price-high':
+        return [...arr].sort((a, b) => -sortByPrice(a, b));
       case 'name':
-        return [...productsToSort].sort(sortByName);
+        return [...arr].sort(sortByName);
       default:
-        return productsToSort;
+        return arr;
     }
   };
 
-  // Apply filters when activeFilters changes
+  // apply filters + sort whenever they change
   useEffect(() => {
     let result = [...products];
-    // Apply active filters
-    Object.entries(activeFilters).forEach(([filterName, selectedOptions]) => {
-      if (selectedOptions.length > 0) {
-        result = result.filter((product) => {
-          // Look for matches in specifications
-          const spec = product.specifications.find((s) => s.name === filterName);
-          if (spec) {
-            // Check if any selected option is included in the spec value
-            return selectedOptions.some((option) => spec.value.includes(option));
-          }
-          return false;
+    Object.entries(activeFilters).forEach(([name, opts]) => {
+      if (opts.length) {
+        result = result.filter((p) => {
+          const spec = p.specifications.find((s) => s.name === name);
+          return spec && opts.some((o) => spec.value.includes(o));
         });
       }
     });
-
-    // Apply sorting
     result = applySorting(result, sortOption);
-
     setFilteredProducts(result);
   }, [activeFilters, products, sortOption]);
 
-  // Toggle a filter option
-  const toggleFilter = (filterName: string, option: string) => {
+  const toggleFilter = (name: string, opt: string) => {
     setActiveFilters((prev) => {
-      const current = prev[filterName] || [];
-      const updated = current.includes(option)
-        ? current.filter((o) => o !== option)
-        : [...current, option];
-
-      return {
-        ...prev,
-        [filterName]: updated,
-      };
+      const curr = prev[name] || [];
+      const next = curr.includes(opt)
+        ? curr.filter((x) => x !== opt)
+        : [...curr, opt];
+      return { ...prev, [name]: next };
     });
   };
 
-  // Toggle expanded filter section
-  const toggleExpandedFilter = (filterName: string) => {
+  const toggleExpandedFilter = (name: string) =>
     setExpandedFilters((prev) =>
-      prev.includes(filterName) ? prev.filter((f) => f !== filterName) : [...prev, filterName]
+      prev.includes(name) ? prev.filter((f) => f !== name) : [...prev, name]
     );
-  };
 
-  // Clear all filters
-  const clearFilters = () => {
-    setActiveFilters({});
-  };
+  const clearFilters = () => setActiveFilters({});
 
-  // If loading, show loading spinner
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -249,12 +205,13 @@ const SpecificCategoryPage = () => {
     );
   }
 
-  // If category doesn't exist
-  if (!category || !productsByCategory.some((cat) => cat._id === category)) {
+  if (!category || !productsByCategory.some((c) => c._id === category)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen px-4 py-12">
         <h1 className="text-3xl font-bold mb-4">Category Not Found</h1>
-        <p className="text-gray-600 mb-8">The category you're looking for doesn't exist.</p>
+        <p className="text-gray-600 mb-8">
+          The category you're looking for doesn't exist.
+        </p>
         <Link to="/" className="text-indigo-600 hover:text-indigo-800 font-medium">
           Return to Home
         </Link>
@@ -262,29 +219,31 @@ const SpecificCategoryPage = () => {
     );
   }
 
-  const findCategoryData = productsByCategory.find((cat) => cat._id === category)?.category;
-  const findDescriptionData = productsByCategory.find((cat) => cat._id === category)?.description;
+  const categoryData = productsByCategory.find((c) => c._id === category)!;
+  const findCategoryData = categoryData.category;
+  const findDescriptionData = categoryData.description;
 
-  // Format price with currency
-  const formatPrice = (price: string): string => {
-    return new Intl.NumberFormat('en-US', {
+  const formatPrice = (price: string) =>
+    new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 0,
     }).format(parseFloat(price));
-  };
 
   return (
     <>
       <Helmet>
         <title>{findCategoryData} | Your Store</title>
-        <meta 
-          name="description" 
-          content={findCategoryData ? `Browse our collection of ${findCategoryData} with detailed specifications and comparisons.` : 'Browse our product collection.'} 
+        <meta
+          name="description"
+          content={
+            findCategoryData
+              ? `Browse our collection of ${findCategoryData} with detailed specifications and comparisons.`
+              : 'Browse our product collection.'
+          }
         />
       </Helmet>
 
-      {/* Hero section */}
       <motion.div
         className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950 dark:to-purple-950"
         initial="hidden"
@@ -294,7 +253,7 @@ const SpecificCategoryPage = () => {
         <div className="container mx-auto px-4 py-12 md:py-16">
           <motion.div variants={fadeInUp}>
             <div className="flex items-center mb-2">
-              <CategoryIcon category={findCategoryData || ''} />
+              <CategoryIcon category={findCategoryData} />
               <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
                 <Link to="/" className="hover:text-indigo-600 dark:hover:text-indigo-400">
                   Home
@@ -304,13 +263,14 @@ const SpecificCategoryPage = () => {
               </span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold mb-3">{findCategoryData}</h1>
-            <p className="text-gray-600 dark:text-gray-400 max-w-3xl">{findDescriptionData}</p>
+            <p className="text-gray-600 dark:text-gray-400 max-w-3xl">
+              {findDescriptionData}
+            </p>
           </motion.div>
         </div>
       </motion.div>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Mobile filters button */}
         <div className="lg:hidden mb-6">
           <button
             onClick={() => setMobileFiltersOpen(true)}
@@ -322,13 +282,12 @@ const SpecificCategoryPage = () => {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Mobile filters */}
           {mobileFiltersOpen && (
             <div className="fixed inset-0 z-40 flex lg:hidden">
               <div
                 className="fixed inset-0 bg-black bg-opacity-25"
                 onClick={() => setMobileFiltersOpen(false)}
-              ></div>
+              />
               <div className="relative ml-auto flex h-full w-full max-w-xs flex-col overflow-y-auto bg-white py-4 pb-12 shadow-xl">
                 <div className="flex items-center justify-between px-4">
                   <h2 className="text-lg font-medium text-gray-900">Filters</h2>
@@ -340,8 +299,6 @@ const SpecificCategoryPage = () => {
                     <X className="h-6 w-6" />
                   </button>
                 </div>
-
-                {/* Mobile filter options */}
                 <div className="mt-4 border-t border-gray-200">
                   {categoryFilters.map((filter) => (
                     <div key={filter.name} className="px-4 py-6 border-b border-gray-200">
@@ -361,7 +318,6 @@ const SpecificCategoryPage = () => {
                           </span>
                         </button>
                       </h3>
-
                       {expandedFilters.includes(filter.name) && (
                         <div className="pt-6 pl-2">
                           <div className="space-y-4">
@@ -389,8 +345,6 @@ const SpecificCategoryPage = () => {
                     </div>
                   ))}
                 </div>
-
-                {/* Active filter count and clear button */}
                 {Object.values(activeFilters).some((arr) => arr.length > 0) && (
                   <div className="px-4 py-4 border-t border-gray-200">
                     <div className="flex justify-between items-center">
@@ -410,7 +364,6 @@ const SpecificCategoryPage = () => {
             </div>
           )}
 
-          {/* Desktop sidebar filters */}
           <div className="hidden lg:block w-64 flex-shrink-0">
             <h2 className="text-xl font-bold mb-4">Filters</h2>
             <div className="space-y-6">
@@ -430,7 +383,6 @@ const SpecificCategoryPage = () => {
                       )}
                     </span>
                   </button>
-
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{
@@ -464,8 +416,6 @@ const SpecificCategoryPage = () => {
                 </div>
               ))}
             </div>
-
-            {/* Active filter count and clear button */}
             {Object.values(activeFilters).some((arr) => arr.length > 0) && (
               <div className="mt-4 pt-4 border-t border-gray-200">
                 <div className="flex justify-between items-center">
@@ -483,16 +433,11 @@ const SpecificCategoryPage = () => {
             )}
           </div>
 
-          {/* Product grid */}
           <div className="flex-1">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-              <div>
-                <p className="text-gray-500 text-sm">
-                  Showing {filteredProducts.length} of {products.length} products
-                </p>
-              </div>
-
-              {/* Sort options */}
+              <p className="text-gray-500 text-sm">
+                Showing {filteredProducts.length} of {products.length} products
+              </p>
               <div className="flex items-center">
                 <label htmlFor="sort" className="mr-2 text-sm font-medium text-gray-700">
                   Sort by:
@@ -512,7 +457,6 @@ const SpecificCategoryPage = () => {
               </div>
             </div>
 
-            {/* Product grid */}
             {filteredProducts.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-gray-500 mb-4">No products match your filters.</p>
@@ -556,16 +500,13 @@ const SpecificCategoryPage = () => {
                           {product.name}
                         </h3>
                         <div className="flex items-center mt-2.5 mb-5">
-                          {/* Show rating stars only if rating exists */}
                           {product.rating && (
                             <>
-                              {[...Array(5)].map((_, index) => (
+                              {[...Array(5)].map((_, i) => (
                                 <svg
-                                  key={index}
+                                  key={i}
                                   className={`w-4 h-4 ${
-                                    index < Math.floor(product.rating || 0)
-                                      ? 'text-yellow-300'
-                                      : 'text-gray-300'
+                                    i < Math.floor(product.rating) ? 'text-yellow-300' : 'text-gray-300'
                                   }`}
                                   aria-hidden="true"
                                   xmlns="http://www.w3.org/2000/svg"

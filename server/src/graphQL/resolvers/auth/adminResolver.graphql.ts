@@ -30,7 +30,7 @@ export const adminResolvers = {
           data: admin,
           message: 'Admin fetched successfully',
           statusCode: 200,
-        };
+        }; 
       } catch (error) {
         return {
           success: false,
