@@ -15,7 +15,7 @@ export default function AboutUsSection() {
     <section className="relative overflow-hidden bg-gray-50 py-12 sm:py-16 md:py-20">
       {/* Decorative elements */}
       <motion.div
-        className="absolute top-10 sm:top-20 right-[5%] sm:right-[10%] h-10 sm:h-16 w-10 sm:w-16 rounded-full border-2 sm:border-4 border-teal-400"
+        className="absolute top-10 sm:top-20 right-[5%] sm:right-[10%] h-10 sm:h-16 w-10 sm:w-16 rounded-full border-2 sm:border-4 border-primary-400"
         initial={{ opacity: 0, scale: 0 }}
         animate={{ opacity: 0.7, scale: 1 }}
         transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" }}
@@ -27,7 +27,7 @@ export default function AboutUsSection() {
         transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" }}
       />
       <motion.div
-        className="absolute top-1/2 left-5 sm:left-10 h-12 sm:h-20 w-12 sm:w-20 rounded-full bg-yellow-200"
+        className="absolute top-1/2 left-5 sm:left-10 h-12 sm:h-20 w-12 sm:w-20 rounded-full bg-warning-200"
         initial={{ y: -30, opacity: 0 }}
         animate={{ y: 0, opacity: 0.5 }}
         transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" }}
@@ -72,7 +72,7 @@ export default function AboutUsSection() {
             </motion.div>
 
             <motion.div
-              className="absolute -bottom-3 sm:-bottom-6 -left-3 sm:-left-6 h-16 sm:h-20 md:h-24 w-16 sm:w-20 md:w-24 rounded-full bg-yellow-400 p-3 sm:p-5 text-center shadow-lg"
+              className="absolute -bottom-3 sm:-bottom-6 -left-3 sm:-left-6 h-16 sm:h-20 md:h-24 w-16 sm:w-20 md:w-24 rounded-full bg-warning-400 p-3 sm:p-5 text-center shadow-lg"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 1, type: "spring" }}
@@ -90,7 +90,7 @@ export default function AboutUsSection() {
             transition={{ duration: 0.7 }}
           >
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-              <span className="inline-flex items-center gap-1 sm:gap-2 rounded-full bg-teal-100 px-3 sm:px-4 py-1 text-xs sm:text-sm font-medium text-teal-800">
+              <span className="inline-flex items-center gap-1 sm:gap-2 rounded-full bg-primary-100 px-3 sm:px-4 py-1 text-xs sm:text-sm font-medium text-primary-800">
                 <Info className="h-3 w-3 sm:h-4 sm:w-4" /> About Us
               </span>
             </motion.div>
@@ -138,7 +138,7 @@ export default function AboutUsSection() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.7 + index * 0.1 }}
                 >
-                  <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-teal-600 flex-shrink-0" />
+                  <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-primary-600 flex-shrink-0" />
                   <span className="text-sm sm:text-base">{feature}</span>
                 </motion.li>
               ))}

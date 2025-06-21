@@ -1,4 +1,4 @@
-import { useState, useRef, ChangeEvent, useEffect } from 'react';
+﻿import { useState, useRef, ChangeEvent, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../hooks/store/store';
 import { motion } from 'framer-motion';
@@ -63,9 +63,10 @@ const ProfilePage = () => {
 
   // Get image URL with proper path
   const getImageUrl = (imageName: string) => {
-    if (!imageName) return `${import.meta.env.VITE_API_URL}/profileImages/avatar.png`; // Default avatar
+    const baseUrl = "http://localhost:5000";
+    if (!imageName) return `${baseUrl}/profileImages/avatar.png`; // Default avatar
     if (imageName.startsWith('http')) return imageName;
-    return `${import.meta.env.VITE_API_URL}/profileImages/${imageName}`;
+    return `${baseUrl}/profileImages/${imageName}`;
   };
 
   // Handle input changes
@@ -177,7 +178,7 @@ const ProfilePage = () => {
   }
 
   if (error && !isLoaded) {
-    return <div className="flex justify-center items-center min-h-screen text-red-500">{error}</div>;
+    return <div className="flex justify-center items-center min-h-screen text-error-500">{error}</div>;
   }
 
   return (
@@ -186,7 +187,7 @@ const ProfilePage = () => {
         {/* Profile Header */}
         <div className="bg-gradient-to-r from-teal-500 to-teal-700 p-6 text-white">
           <h1 className="text-2xl font-bold">My Profile</h1>
-          <p className="text-teal-100">Manage your account information</p>
+          <p className="text-primary-100">Manage your account information</p>
         </div>
 
         <div className="p-6">
@@ -194,14 +195,14 @@ const ProfilePage = () => {
             {/* Profile Image Section */}
             <div className="flex flex-col items-center">
               <div className="relative mb-4">
-                <div className="w-36 h-36 rounded-full overflow-hidden border-4 border-teal-500">
+                <div className="w-36 h-36 rounded-full overflow-hidden border-4 border-primary-500">
                   <img 
                     src={previewImage || getImageUrl(displayImage)} 
                     alt="Profile" 
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
-                      target.src = `${import.meta.env.VITE_API_URL}/profileImages/avatar.png`;
+                      target.src = `http://localhost:5000/profileImages/avatar.png`;
                     }}
                   />
                 </div>
@@ -210,7 +211,7 @@ const ProfilePage = () => {
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
-                    className="absolute bottom-0 right-0 bg-teal-600 text-white p-2 rounded-full shadow-lg"
+                    className="absolute bottom-0 right-0 bg-primary-600 text-white p-2 rounded-full shadow-lg"
                     onClick={triggerFileInput}
                     disabled={profileImageLoading}
                   >
@@ -240,7 +241,7 @@ const ProfilePage = () => {
                       setPreviewImage(null);
                       setNewImage(null);
                     }}
-                    className="text-red-500 hover:text-red-700"
+                    className="text-error-500 hover:text-error-700"
                   >
                     <X size={16} />
                   </button>
@@ -264,12 +265,12 @@ const ProfilePage = () => {
                       value={formData.name}
                       onChange={handleChange}
                       className={`w-full px-3 py-2 border rounded-lg focus:outline-none 
-                        ${isEditing ? 'border-teal-500 focus:ring-2 focus:ring-teal-200' : 'bg-gray-50 border-gray-200'}
-                        ${validationErrors.name ? 'border-red-500' : ''}
+                        ${isEditing ? 'border-primary-500 focus:ring-2 focus:ring-primary-200' : 'bg-gray-50 border-gray-200'}
+                        ${validationErrors.name ? 'border-error-500' : ''}
                       `}
                     />
                     {validationErrors.name && (
-                      <p className="text-red-500 text-xs mt-1">{validationErrors.name}</p>
+                      <p className="text-error-500 text-xs mt-1">{validationErrors.name}</p>
                     )}
                   </div>
                   
@@ -298,7 +299,7 @@ const ProfilePage = () => {
                   </div>
 
                   {submitError && (
-                    <div className="text-red-500 text-sm mt-2">{submitError}</div>
+                    <div className="text-error-500 text-sm mt-2">{submitError}</div>
                   )}
                   
                   <div className="pt-4 flex justify-end space-x-3">
@@ -319,7 +320,7 @@ const ProfilePage = () => {
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           type="submit"
-                          className="flex items-center px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+                          className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                           disabled={loading}
                         >
                           {loading ? (
@@ -336,7 +337,7 @@ const ProfilePage = () => {
                         whileTap={{ scale: 0.95 }}
                         type="button"
                         onClick={toggleEditMode}
-                        className="flex items-center px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+                        className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                       >
                         <User size={16} className="mr-2" />
                         Edit Profile

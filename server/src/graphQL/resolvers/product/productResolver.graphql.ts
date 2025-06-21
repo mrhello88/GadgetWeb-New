@@ -13,7 +13,7 @@ interface Specification {
 export const productResolver = {
   Query: {
     getProduct: async (_: any, { _id }: { _id: String }) => {
-      try {;
+      try {
         const product = await ProductModel.findById(_id)
           .populate({
             path: 'reviews',
@@ -30,6 +30,7 @@ export const productResolver = {
             statusCode: 404,
           };
         }
+   
         return {
           success: true,
           message: 'Product retrieved successfully',
@@ -46,13 +47,65 @@ export const productResolver = {
       }
     },
 
-    getAllProducts: async () => {
+    getAllProducts: async (_: any, { 
+      limit = 20, 
+      offset = 0,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      search
+    }: { 
+      limit?: number; 
+      offset?: number;
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+      search?: string;
+    }) => {
       try {
-        const products = await ProductModel.find().populate('relatedProducts');
+        const query: any = {};
+        
+        // Add search functionality
+        if (search) {
+          query.$or = [
+            { name: { $regex: search, $options: 'i' } },
+            { description: { $regex: search, $options: 'i' } },
+            { brand: { $regex: search, $options: 'i' } },
+            { category: { $regex: search, $options: 'i' } },
+            { 'specifications.name': { $regex: search, $options: 'i' } },
+            { 'specifications.value': { $regex: search, $options: 'i' } },
+            { features: { $regex: search, $options: 'i' } }
+          ];
+        }
+
+        const sortDirection = sortOrder === 'asc' ? 1 : -1;
+        const sortObj: any = {};
+        sortObj[sortBy] = sortDirection;
+
+        const products = await ProductModel.find(query)
+          .populate('relatedProducts')
+          .sort(sortObj)
+          .limit(limit)
+          .skip(offset)
+          .lean();
+
+        const total = await ProductModel.countDocuments(query);
+
+        if (!products.length) { 
+          return {
+            success: true,
+            message: 'No products found',
+            data: [],
+            total: 0,
+            hasMore: false,
+            statusCode: 200,
+          };
+        }
+
         return {
           success: true,
           message: 'Products retrieved successfully',
           data: products,
+          total,
+          hasMore: offset + products.length < total,
           statusCode: 200,
         };
       } catch (error: any) {
@@ -60,6 +113,294 @@ export const productResolver = {
           success: false,
           message: error.message,
           data: [],
+          total: 0,
+          hasMore: false,
+          statusCode: 500,
+        };
+      }
+    },
+
+    getProductsByCategory: async (_: any, { 
+      category,
+      limit = 20, 
+      offset = 0,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      filters
+    }: { 
+      category: string;
+      limit?: number; 
+      offset?: number;
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+      filters?: {
+        brand?: string;
+        minPrice?: number;
+        maxPrice?: number;
+        minRating?: number;
+        search?: string;
+        priceRange?: string;
+        specifications?: Array<{name: string; value: string}>;
+      };
+    }) => {
+      try {
+        const query: any = { category: { $regex: category, $options: 'i' } };
+
+        // Apply additional filters if provided
+        if (filters) {
+          if (filters.brand) {
+            query.brand = { $regex: filters.brand, $options: 'i' };
+          }
+          
+          if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
+            query.price = {};
+            if (filters.minPrice !== undefined) query.price.$gte = filters.minPrice;
+            if (filters.maxPrice !== undefined) query.price.$lte = filters.maxPrice;
+          }
+
+          // Handle price range filter
+          if (filters.priceRange) {
+            switch (filters.priceRange) {
+              case 'under-100':
+                query.price = { $lt: 100 };
+                break;
+              case '100-300':
+                query.price = { $gte: 100, $lte: 300 };
+                break;
+              case '300-500':
+                query.price = { $gte: 300, $lte: 500 };
+                break;
+              case '500-1000':
+                query.price = { $gte: 500, $lte: 1000 };
+                break;
+              case 'over-1000':
+                query.price = { $gt: 1000 };
+                break;
+            }
+          }
+          
+          if (filters.minRating !== undefined) {
+            query.rating = { $gte: filters.minRating };
+          }
+
+          // Handle specifications filter
+          if (filters.specifications && filters.specifications.length > 0) {
+            query.$and = filters.specifications.map(spec => ({
+              'specifications': {
+                $elemMatch: {
+                  name: { $regex: spec.name, $options: 'i' },
+                  value: { $regex: spec.value, $options: 'i' }
+                }
+              }
+            }));
+          }
+          
+          if (filters.search) {
+            const searchConditions = [
+              { name: { $regex: filters.search, $options: 'i' } },
+              { description: { $regex: filters.search, $options: 'i' } },
+              { brand: { $regex: filters.search, $options: 'i' } },
+              { 'specifications.name': { $regex: filters.search, $options: 'i' } },
+              { 'specifications.value': { $regex: filters.search, $options: 'i' } },
+              { features: { $regex: filters.search, $options: 'i' } }
+            ];
+            
+            if (query.$and) {
+              query.$and.push({ $or: searchConditions });
+            } else {
+              query.$or = searchConditions;
+            }
+          }
+        }
+
+        const sortDirection = sortOrder === 'asc' ? 1 : -1;
+        const sortObj: any = {};
+        sortObj[sortBy] = sortDirection;
+
+        const products = await ProductModel.find(query)
+          .sort(sortObj)
+          .limit(limit)
+          .skip(offset)
+          .lean();
+
+        const total = await ProductModel.countDocuments(query);
+
+        if (!products.length) {
+          return {
+            success: true,
+            message: 'No products found in this category',
+            data: [],
+            total: 0,
+            hasMore: false,
+            statusCode: 200,
+          };
+        }
+
+        return {
+          success: true,
+          message: 'Category products retrieved successfully',
+          data: products,
+          total,
+          hasMore: offset + products.length < total,
+          statusCode: 200,
+        };
+      } catch (error: any) {
+        return {
+          success: false,
+          message: error.message,
+          data: [],
+          total: 0,
+          hasMore: false,
+          statusCode: 500,
+        };
+      }
+    },
+
+    getProductsByFilters: async (_: any, { 
+      filters,
+      limit = 20, 
+      offset = 0,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    }: { 
+      filters: {
+        category?: string;
+        brand?: string;
+        minPrice?: number;
+        maxPrice?: number;
+        minRating?: number;
+        search?: string;
+      };
+      limit?: number; 
+      offset?: number;
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+    }) => {
+      try {
+        const query: any = {};
+
+        // Apply filters
+        if (filters.category) {
+          query.category = { $regex: filters.category, $options: 'i' };
+        }
+        
+        if (filters.brand) {
+          query.brand = { $regex: filters.brand, $options: 'i' };
+        }
+        
+        if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
+          query.price = {};
+          if (filters.minPrice !== undefined) query.price.$gte = filters.minPrice;
+          if (filters.maxPrice !== undefined) query.price.$lte = filters.maxPrice;
+        }
+        
+        if (filters.minRating !== undefined) {
+          query.rating = { $gte: filters.minRating };
+        }
+        
+        if (filters.search) {
+          query.$or = [
+            { name: { $regex: filters.search, $options: 'i' } },
+            { description: { $regex: filters.search, $options: 'i' } },
+            { brand: { $regex: filters.search, $options: 'i' } },
+            { 'specifications.name': { $regex: filters.search, $options: 'i' } },
+            { 'specifications.value': { $regex: filters.search, $options: 'i' } },
+            { features: { $regex: filters.search, $options: 'i' } }
+          ];
+        }
+
+        const sortDirection = sortOrder === 'asc' ? 1 : -1;
+        const sortObj: any = {};
+        sortObj[sortBy] = sortDirection;
+
+        const products = await ProductModel.find(query)
+          .populate('relatedProducts')
+          .sort(sortObj)
+          .limit(limit)
+          .skip(offset)
+          .lean();
+
+        const total = await ProductModel.countDocuments(query);
+
+        if (!products.length) {
+          return {
+            success: true,
+            message: 'No products found matching the specified filters',
+            data: [],
+            total: 0,
+            hasMore: false,
+            statusCode: 200,
+          };
+        }
+
+        return {
+          success: true,
+          message: 'Filtered products retrieved successfully',
+          data: products,
+          total,
+          hasMore: offset + products.length < total,
+          statusCode: 200,
+        };
+      } catch (error: any) {
+        return {
+          success: false,
+          message: error.message,
+          data: [],
+          total: 0,
+          hasMore: false,
+          statusCode: 500,
+        };
+      }
+    },
+
+    getCategories: async (_: any, { 
+      limit = 10, 
+      offset = 0 
+    }: { 
+      limit?: number; 
+      offset?: number; 
+    }) => {
+      try {
+        const categories = await CategoryModel.find()
+          .populate({
+            path: 'products',
+            populate: [
+              { path: 'relatedProducts' },
+              { path: 'reviews' }
+            ],
+          })
+          .limit(limit)
+          .skip(offset)
+          .lean();
+
+        const total = await CategoryModel.countDocuments();
+
+        if (!categories.length) {
+          return {
+            success: true,
+            message: 'No categories found',
+            data: [],
+            total: 0,
+            hasMore: false,
+            statusCode: 200,
+          };
+        }
+
+        return {
+          success: true,
+          message: 'Categories retrieved successfully',
+          data: categories,
+          total,
+          hasMore: offset + categories.length < total,
+          statusCode: 200,
+        };
+      } catch (error: any) {
+        return {
+          success: false,
+          message: error.message,
+          data: [],
+          total: 0,
+          hasMore: false,
           statusCode: 500,
         };
       }
@@ -159,14 +500,25 @@ export const productResolver = {
             statusCode: 400,
           };
         }
-        const addInCategory = await CategoryModel.findOneAndUpdate(
-          { category },
-          {
-            $push: { products: product._id },
-          },
-          { new: true, upsert: true },
-        );
-        if (!addInCategory) {
+        // Check if category exists, if not create it with basic info
+        let categoryDoc = await CategoryModel.findOne({ category });
+        if (!categoryDoc) {
+          // Create category if it doesn't exist
+          categoryDoc = await CategoryModel.create({
+            category,
+            description: `All ${category} products`,
+            image: 'default-category.png', // You can set a default image
+            products: [product._id]
+          });
+        } else {
+          // Add product to existing category
+          await CategoryModel.findOneAndUpdate(
+            { category },
+            { $addToSet: { products: product._id } }
+          );
+        }
+        
+        if (!categoryDoc) {
           return {
             success: false,
             message: 'Product not added to category',

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, Tag, Upload, Image, Check } from 'lucide-react';
 import { useDispatch } from 'react-redux';
@@ -6,6 +6,9 @@ import { AppDispatch } from '../../../hooks/store/store';
 import { AddCategory } from '../../../hooks/store/thunk/product.thunk';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import useErrorHandler from '../../../hooks/useErrorHandler';
+import LoadingSpinner from '../../common/LoadingSpinner';
+import ErrorBoundary from '../../error/ErrorBoundary';
 
 type FormState = {
   category: string;
@@ -28,6 +31,14 @@ const AddCategoryAdminPage = () => {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+
+  // Loading and error states
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  // Error handling
+  const { handleError, handleValidationError } = useErrorHandler();
 
   // Form input handlers with proper typing
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -87,78 +98,140 @@ const AddCategoryAdminPage = () => {
 
   const dispatch = useDispatch<AppDispatch>();
 
+  const validateForm = () => {
+    const { category, description, image } = formState.current;
+    const errors: Record<string, string> = {};
+
+    // Category validation
+    if (!category?.trim()) {
+      errors.category = 'Category name is required';
+    } else if (/^\d+$/.test(category.trim())) {
+      errors.category = 'Category name cannot contain only numbers';
+    } else if (category.trim().length < 2) {
+      errors.category = 'Category name must be at least 2 characters long';
+    }
+
+    // Description validation
+    if (!description?.trim()) {
+      errors.description = 'Category description is required';
+    } else if (description.trim().length < 10) {
+      errors.description = 'Description should be at least 10 characters long';
+    } else if (description.trim().length > 500) {
+      errors.description = 'Description should be less than 500 characters';
+    }
+
+    // Image validation
+    if (!image) {
+      errors.image = 'Category image is required';
+    } else {
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(image.type)) {
+        errors.image = 'Please select a valid image file (JPEG, PNG, GIF, WebP)';
+      } else if (image.size > 5 * 1024 * 1024) { // 5MB
+        errors.image = 'Image size should be less than 5MB';
+      }
+    }
+
+    setValidationErrors(errors);
+    
+    if (Object.keys(errors).length > 0) {
+      handleValidationError(errors, true);
+      return false;
+    }
+    
+    return true;
+  };
+
+  const uploadImage = async (file: File): Promise<string | null> => {
+    setIsUploading(true);
+    try {
+      const formImageData = new FormData();
+      formImageData.append('image', file);
+      
+      const response = await axios.post(`http://localhost:5000/api/category`, formImageData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 30000, // 30 seconds timeout
+      });
+      
+      if (response?.data?.filename) {
+        return response.data.filename;
+      } else {
+        throw new Error('No filename received from server');
+      }
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.code === 'ECONNABORTED') {
+          handleError('Upload timeout. Please try again with a smaller image.', { showToast: true });
+        } else if (error.response?.status === 413) {
+          handleError('Image is too large. Please select a smaller image.', { showToast: true });
+        } else {
+          handleError(error.response?.data?.message || 'Failed to upload image', { showToast: true });
+        }
+      } else {
+        handleError('Failed to upload image. Please check your connection and try again.', { showToast: true });
+      }
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const resetForm = () => {
+    formState.current = { category: '', description: '', image: null };
+    setPreview(null);
+    setValidationErrors({});
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    setRerender(r => r + 1);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (isSubmitting || isUploading) return;
+
+    setIsSubmitting(true);
+    
     try {
+      // Validate form
+      if (!validateForm()) {
+        return;
+      }
+
       const { category, description, image } = formState.current;
 
-      // Validation
-      const errors: string[] = [];
-
-      if (!category) {
-        errors.push('Category name is required');
-      } else if (/^\d+$/.test(category)) {
-        errors.push('Category name cannot contain only numbers');
-      }
-
-      if (!description) {
-        errors.push('Category description is required');
-      } else if (description.length < 10) {
-        errors.push('Description should be at least 10 characters long');
-      }
-
-      if (!image) {
-        errors.push('Category image is required');
-      }
-
-      if (errors.length > 0) {
-        toast.error(errors[0]); // Show the first error
-        return;
-      }
-
-      const uploadImage = async (file: File) => {
-        try {
-          const formImageData = new FormData();
-          formImageData.append('image', file);
-          const response = await axios.post('http://localhost:5000/api/category', formImageData);
-          return response?.data.filename || null;
-        } catch (error) {
-          toast.error('Failed to upload image');
-          return null;
-        }
-      };
-
-      const uploadedImageName = image ? await uploadImage(image) : null;
-
-      // Make sure image was uploaded successfully
+      // Upload image
+      const uploadedImageName = await uploadImage(image!);
+      
       if (!uploadedImageName) {
-        toast.error('Failed to upload image. Please try again.');
-        return;
+        return; // Error already handled in uploadImage
       }
 
+      // Prepare category data
       const categoryData = {
-        category,
-        description,
+        category: category.trim(),
+        description: description.trim(),
         image: uploadedImageName,
       };
 
-      dispatch(AddCategory(categoryData)).then(({ payload }) => {
-        if (payload?.success) {
-          toast.success(payload.message || 'Category Added Successfully');
-          // Reset formState and preview, then force re-render
-          formState.current = { category: '', description: '', image: null };
-          setPreview(null);
-          if (fileInputRef.current) fileInputRef.current.value = '';
-          setRerender(r => r + 1);
-        } else {
-          toast.error(payload.message || 'Failed to add category');
-        }
-      });
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        toast.error(error.message || 'Error during category addition');
+      // Submit category
+      const result = await dispatch(AddCategory(categoryData));
+      const payload = result.payload as any;
+      
+      if (payload?.success) {
+        toast.success(payload.message || 'Category added successfully!');
+        resetForm();
+      } else {
+        handleError(payload?.message || 'Failed to add category', { showToast: true });
       }
+    } catch (error) {
+      handleError(error, { 
+        showToast: true,
+        customMessage: 'An unexpected error occurred while adding the category'
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -179,7 +252,7 @@ const AddCategoryAdminPage = () => {
       <motion.div
         animate={{ y: [0, -10, 0] }}
         transition={{ duration: 5, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }}
-        className="rounded-xl bg-gradient-to-br from-white to-pink-50/70 backdrop-blur-md shadow-lg p-6 border border-teal-100"
+        className="rounded-xl bg-gradient-to-br from-white to-pink-50/70 backdrop-blur-md shadow-lg p-6 border border-primary-100"
       >
         {children}
       </motion.div>
@@ -187,14 +260,15 @@ const AddCategoryAdminPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-pink-100 p-4 md:p-8 flex flex-col items-center justify-center">
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gradient-to-br from-teal-50 to-pink-100 p-4 md:p-8 flex flex-col items-center justify-center">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
         className="w-full max-w-4xl"
       >
-        <h1 className="text-3xl md:text-4xl font-bold text-center text-teal-700 mb-6 md:mb-8">
+        <h1 className="text-3xl md:text-4xl font-bold text-center text-primary-700 mb-6 md:mb-8">
           Create Your Content
         </h1>
 
@@ -218,8 +292,16 @@ const AddCategoryAdminPage = () => {
                     defaultValue={formState.current.category}
                     onChange={handleInputChange}
                     placeholder="Enter category name"
-                    className="w-full px-4 py-2 rounded-md bg-white/80 backdrop-blur-sm border border-teal-200 focus:border-teal-400 focus:ring-1 focus:ring-teal-400 outline-none transition-all"
+                    className={`w-full px-4 py-2 rounded-md bg-white/80 backdrop-blur-sm border ${
+                      validationErrors.category 
+                        ? 'border-error-300 focus:border-error-400 focus:ring-error-400' 
+                        : 'border-primary-200 focus:border-primary-400 focus:ring-primary-400'
+                    } focus:ring-1 outline-none transition-all`}
+                    disabled={isSubmitting}
                   />
+                  {validationErrors.category && (
+                    <p className="text-sm text-error-500 mt-1">{validationErrors.category}</p>
+                  )}
                 </div>
               </FloatingElement>
 
@@ -238,8 +320,16 @@ const AddCategoryAdminPage = () => {
                     defaultValue={formState.current.description}
                     onChange={handleInputChange}
                     placeholder="Describe your content..."
-                    className="w-full px-4 py-2 rounded-md bg-white/80 backdrop-blur-sm border border-teal-200 focus:border-teal-400 focus:ring-1 focus:ring-teal-400 outline-none transition-all min-h-[150px] resize-y"
+                    className={`w-full px-4 py-2 rounded-md bg-white/80 backdrop-blur-sm border ${
+                      validationErrors.description 
+                        ? 'border-error-300 focus:border-error-400 focus:ring-error-400' 
+                        : 'border-primary-200 focus:border-primary-400 focus:ring-primary-400'
+                    } focus:ring-1 outline-none transition-all min-h-[150px] resize-y`}
+                    disabled={isSubmitting}
                   />
+                  {validationErrors.description && (
+                    <p className="text-sm text-error-500 mt-1">{validationErrors.description}</p>
+                  )}
                 </div>
               </FloatingElement>
             </div>
@@ -260,12 +350,14 @@ const AddCategoryAdminPage = () => {
                   className={`
                     relative h-[300px] rounded-xl cursor-pointer border-2 border-dashed transition-all flex flex-col justify-center items-center
                     ${
-                      isDragging
-                        ? 'border-teal-500 bg-teal-50'
+                      validationErrors.image
+                        ? 'border-error-400 bg-error-50'
+                        : isDragging
+                        ? 'border-primary-500 bg-primary-50'
                         : preview
-                        ? 'border-yellow-400 bg-white'
-                        : 'border-pink-300 bg-white/30 hover:border-teal-300 hover:bg-teal-50/30'
-                    }
+                        ? 'border-warning-400 bg-white'
+                        : 'border-pink-300 bg-white/30 hover:border-primary-300 hover:bg-primary-50/30'
+                    } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}
                   `}
                 >
                   <input
@@ -282,7 +374,7 @@ const AddCategoryAdminPage = () => {
                         alt="Preview"
                         className="w-full h-full object-contain rounded"
                       />
-                      <div className="absolute top-2 right-2 bg-yellow-400 text-teal-800 p-1 rounded-full">
+                      <div className="absolute top-2 right-2 bg-warning-400 text-primary-800 p-1 rounded-full">
                         <Check className="h-4 w-4" />
                       </div>
                       <motion.div
@@ -296,12 +388,12 @@ const AddCategoryAdminPage = () => {
                   ) : (
                     <motion.div className="text-center p-6 space-y-4" whileHover={{ scale: 1.05 }}>
                       {isDragging ? (
-                        <Upload className="mx-auto h-12 w-12 text-teal-500" />
+                        <Upload className="mx-auto h-12 w-12 text-primary-500" />
                       ) : (
                         <Image className="mx-auto h-12 w-12 text-pink-400" />
                       )}
                       <div>
-                        <p className="text-lg font-medium text-teal-700">
+                        <p className="text-lg font-medium text-primary-700">
                           {isDragging ? 'Drop your image here' : 'Click to upload or drag and drop'}
                         </p>
                         <p className="text-sm text-pink-500">PNG, JPG, GIF up to 5MB</p>
@@ -309,21 +401,38 @@ const AddCategoryAdminPage = () => {
                     </motion.div>
                   )}
                 </div>
+                {validationErrors.image && (
+                  <p className="text-sm text-error-500 mt-2">{validationErrors.image}</p>
+                )}
+                {isUploading && (
+                  <div className="mt-2 flex items-center gap-2 text-sm text-primary-600">
+                    <LoadingSpinner size="sm" type="default" />
+                    <span>Uploading image...</span>
+                  </div>
+                )}
               </div>
             </FloatingElement>
           </div>
           <FloatingElement delay={0.7}>
             <button
               type="submit"
-              className="w-full bg-yellow-400 hover:bg-yellow-500 text-teal-800 py-3 px-4 rounded-lg shadow-lg transition-all font-medium text-lg"
+              disabled={isSubmitting || isUploading}
+              className={`w-full py-3 px-4 rounded-lg shadow-lg transition-all font-medium text-lg flex items-center justify-center gap-2 ${
+                isSubmitting || isUploading
+                  ? 'bg-gray-400 cursor-not-allowed text-gray-600'
+                  : 'bg-warning-400 hover:bg-warning-500 text-primary-800 hover:shadow-xl'
+              }`}
             >
-              Submit
+              {isSubmitting && <LoadingSpinner size="sm" />}
+              {isSubmitting ? 'Adding Category...' : 'Submit'}
             </button>
           </FloatingElement>
         </form>
       </motion.div>
     </div>
+    </ErrorBoundary>
   );
 };
 
 export default AddCategoryAdminPage;
+

@@ -15,7 +15,7 @@ export default function NewsletterSection() {
   }
 
   return (
-    <section className="relative overflow-hidden bg-teal-900 py-12 sm:py-16 md:py-20 text-white">
+    <section className="relative overflow-hidden bg-primary-900 py-12 sm:py-16 md:py-20 text-white">
       {/* Decorative elements */}
       <motion.div
         className="absolute top-5 sm:top-10 left-[5%] sm:left-[10%] h-10 sm:h-16 w-10 sm:w-16 rounded-full bg-pink-500/20"
@@ -24,7 +24,7 @@ export default function NewsletterSection() {
         transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" }}
       />
       <motion.div
-        className="absolute bottom-5 sm:bottom-10 right-[10%] sm:right-[20%] h-12 sm:h-20 w-12 sm:w-20 bg-yellow-400/20"
+        className="absolute bottom-5 sm:bottom-10 right-[10%] sm:right-[20%] h-12 sm:h-20 w-12 sm:w-20 bg-warning-400/20"
         initial={{ opacity: 0, rotate: 0 }}
         animate={{ opacity: 1, rotate: 90 }}
         transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" }}
@@ -58,11 +58,11 @@ export default function NewsletterSection() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
-            Stay Updated on the <span className="text-yellow-400">Latest Tech</span>
+            Stay Updated on the <span className="text-warning-400">Latest Tech</span>
           </motion.h2>
 
           <motion.p
-            className="mx-auto mt-2 sm:mt-4 max-w-xl text-base sm:text-lg text-teal-100"
+            className="mx-auto mt-2 sm:mt-4 max-w-xl text-base sm:text-lg text-primary-100"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
@@ -99,19 +99,19 @@ export default function NewsletterSection() {
               </div>
             ) : (
               <motion.div
-                className="rounded-lg bg-teal-800 p-3 sm:p-4 text-center"
+                className="rounded-lg bg-primary-800 p-3 sm:p-4 text-center"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ type: "spring" }}
               >
                 <p className="text-base sm:text-lg font-medium">Thanks for subscribing!</p>
-                <p className="text-sm text-teal-100">We'll keep you updated with the latest tech news.</p>
+                <p className="text-sm text-primary-100">We'll keep you updated with the latest tech news.</p>
               </motion.div>
             )}
           </motion.form>
 
           <motion.p
-            className="mt-3 sm:mt-4 text-xs sm:text-sm text-teal-200"
+            className="mt-3 sm:mt-4 text-xs sm:text-sm text-primary-200"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7 }}

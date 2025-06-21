@@ -14,7 +14,7 @@ import SpecificCategoryPage from '../../pages/SpecificCategory.page';
 import ProductCompare from '../../pages/Compare.page';
 import DashboardLayout from '../dashboard/layout/Layout.dashboard';
 import AddProductPage from '../dashboard/admin/AddProduct.admin';
-import { ProductsByCategoryLoader } from '../DataLoader/DataLoader';
+
 import ProtectedRoute from '../../utils/ProtectedRoute';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../hooks/store/store';
@@ -64,35 +64,18 @@ export const AppRoutes: React.FC = () => {
     <>
       <Router>
         <ScrollToTop />
-        <ProductsByCategoryLoader children={<Navbar />} />
+        <Navbar />
         <div className="pt-20">
           <Routes>
-            <Route path="/" element={<ProductsByCategoryLoader children={<HomePage />} />} />
+            <Route path="/" element={<HomePage />} />
             <Route path="/about" element={<About />} />
-            <Route
-              path="/categories"
-              element={<ProductsByCategoryLoader children={<CategoryPage />} />}
-            />
-            <Route
-              path="/category/:category"
-              element={<ProductsByCategoryLoader children={<SpecificCategoryPage />} />}
-            />
-            <Route
-              path="/product/:productId"
-              element={<ProductsByCategoryLoader children={<ProductDetailPage />} />}
-            />
+            <Route path="/categories" element={<CategoryPage />} />
+            <Route path="/category/:category" element={<SpecificCategoryPage />} />
+            <Route path="/product/:productId" element={<ProductDetailPage />} />
             {isLoggedIn ? (
               <>
-                  <Route
-                    path="/compare"
-                    element={<ProductsByCategoryLoader children={<ProductCompare />} />}
-                  />
-
-
-                <Route
-                  path="/compare/:id"
-                  element={<ProductsByCategoryLoader children={<ProductCompare />} />}
-                />
+                <Route path="/compare" element={<ProductCompare />} />
+                <Route path="/compare/:id" element={<ProductCompare />} />
                 
                 <Route
                   path="/profile"

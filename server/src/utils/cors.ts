@@ -1,14 +1,19 @@
 import cors from 'cors';
 
 const allowedOrigins: string[] = [
+  'http://localhost:5173',
+  'http://localhost:5174', 
+  'http://localhost:5175',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
+  'http://127.0.0.1:5175',
   process.env.CORS_ORIGIN || '',
-  'http://127.0.0.1:5173', // just in case
 ];
 
 export const corsOptions: cors.CorsOptions = {
-  origin: 'http://localhost:5173', // Ensure lowercase "origin"
+  origin: allowedOrigins,
   methods: [process.env.CORS_METHODS || 'GET,HEAD,PUT,PATCH,POST,DELETE'],
-  credentials: process.env.CORS_CREDENTIALS === 'true', // Ensure lowercase "credentials"
+  credentials: process.env.CORS_CREDENTIALS === 'true',
   allowedHeaders: [
     'Content-Type',
     'Authorization',

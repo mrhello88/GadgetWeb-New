@@ -123,21 +123,21 @@ export const Register = () => {
       >
         <h2 className="text-2xl font-bold text-center text-gray-800">Sign Up</h2>
 
-        {errors.general && <div className="text-red-500 text-center text-sm">{errors.general}</div>}
+        {errors.general && <div className="text-error-500 text-center text-sm">{errors.general}</div>}
 
         <div>
         <input
           type="text"
           name="name"
           placeholder="Full Name"
-            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.name ? 'border-red-500' : 'border-gray-300'
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+              errors.name ? 'border-error-500' : 'border-gray-300'
             }`}
           value={formData.name}
           onChange={handleChange}
           required
         />
-          {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+          {errors.name && <p className="text-error-500 text-xs mt-1">{errors.name}</p>}
         </div>
 
         <div>
@@ -145,14 +145,14 @@ export const Register = () => {
           type="email"
           name="email"
           placeholder="Email Address"
-            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.email ? 'border-red-500' : 'border-gray-300'
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+              errors.email ? 'border-error-500' : 'border-gray-300'
             }`}
           value={formData.email}
           onChange={handleChange}
           required
         />
-          {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+          {errors.email && <p className="text-error-500 text-xs mt-1">{errors.email}</p>}
         </div>
 
         <div>
@@ -160,14 +160,14 @@ export const Register = () => {
           type="password"
           name="password"
           placeholder="Password"
-            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.password ? 'border-red-500' : 'border-gray-300'
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+              errors.password ? 'border-error-500' : 'border-gray-300'
             }`}
           value={formData.password}
           onChange={handleChange}
           required
         />
-          {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+          {errors.password && <p className="text-error-500 text-xs mt-1">{errors.password}</p>}
         </div>
 
         <div>
@@ -175,21 +175,21 @@ export const Register = () => {
           type="password"
           name="confirmPassword"
           placeholder="Confirm Password"
-            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+              errors.confirmPassword ? 'border-error-500' : 'border-gray-300'
             }`}
           value={formData.confirmPassword}
           onChange={handleChange}
           required
         />
           {errors.confirmPassword && (
-            <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>
+            <p className="text-error-500 text-xs mt-1">{errors.confirmPassword}</p>
           )}
         </div>
 
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-200"
+                        className="w-full bg-primary-500 text-white py-2 rounded-lg hover:bg-primary-600 transition duration-200"
         >
           Create Account
         </button>
@@ -197,7 +197,7 @@ export const Register = () => {
         <button
           type="button"
           onClick={() => navigate('/user/login')}
-          className="w-full border border-blue-600 text-blue-600 py-2 rounded-lg hover:bg-blue-50 transition duration-200"
+                        className="w-full border border-primary-600 text-primary-600 py-2 rounded-lg hover:bg-primary-50 transition duration-200"
         >
           Already have an account? Login
         </button>

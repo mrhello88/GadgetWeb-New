@@ -17,7 +17,7 @@ export default function HeroSection() {
         transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY, repeatType: 'reverse' }}
       />
       <motion.div
-        className="absolute bottom-10 sm:bottom-20 left-[15%] sm:left-1/4 h-8 w-8 sm:h-12 sm:w-12 bg-yellow-300"
+        className="absolute bottom-10 sm:bottom-20 left-[15%] sm:left-1/4 h-8 w-8 sm:h-12 sm:w-12 bg-warning-300"
         initial={{ opacity: 0, rotate: 0 }}
         animate={{ opacity: 0.6, rotate: 180 }}
         transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, repeatType: 'reverse' }}
@@ -39,7 +39,7 @@ export default function HeroSection() {
             transition={{ duration: 0.7 }}
           >
             <motion.span
-              className="inline-block rounded-full bg-teal-100 px-3 py-1 text-xs sm:text-sm font-medium text-teal-800"
+              className="inline-block rounded-full bg-primary-100 px-3 py-1 text-xs sm:text-sm font-medium text-primary-800"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
@@ -52,7 +52,7 @@ export default function HeroSection() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
             >
-              Find Your Perfect <span className="text-teal-600">Tech Match</span>
+              Find Your Perfect <span className="text-primary-600">Tech Match</span>
             </motion.h1>
             <motion.p
               className="max-w-2xl mx-auto lg:mx-0 text-base sm:text-lg text-gray-600"
@@ -73,7 +73,7 @@ export default function HeroSection() {
                 <>
                   <Link
                     to="/compare"
-                    className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 sm:px-6 py-2 sm:py-3 text-sm font-medium text-white transition-colors hover:bg-teal-700"
+                    className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 sm:px-6 py-2 sm:py-3 text-sm font-medium text-white transition-colors hover:bg-primary-700"
                   >
                     Compare Now <ChevronRight className="h-4 w-4" />
                   </Link>
@@ -82,7 +82,7 @@ export default function HeroSection() {
                 <>
                   <Link
                     to="/user/login"
-                    className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 sm:px-6 py-2 sm:py-3 text-sm font-medium text-white transition-colors hover:bg-teal-700"
+                    className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 sm:px-6 py-2 sm:py-3 text-sm font-medium text-white transition-colors hover:bg-primary-700"
                   >
                     Compare Now <ChevronRight className="h-4 w-4" />
                   </Link>
@@ -318,7 +318,7 @@ export default function HeroSection() {
 
               {/* Floating elements over the image - responsive sizing */}
               <motion.div
-                className="absolute -bottom-2 sm:-bottom-4 -left-2 sm:-left-4 rounded-lg bg-yellow-400 p-2 sm:p-4 shadow-lg"
+                className="absolute -bottom-2 sm:-bottom-4 -left-2 sm:-left-4 rounded-lg bg-warning-400 p-2 sm:p-4 shadow-lg"
                 initial={{ y: 50, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 1 }}

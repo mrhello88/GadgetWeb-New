@@ -14,14 +14,14 @@ export const authTypeDefs = gql`
     name: String!
     email: String!
     isAdmin: Boolean!
-    profileImage: String
+    profileImage: String 
     status: String
   }
-
+ 
   type Query { 
     getUser(_id: ID!): userDataResponse
     getUsers: [User!]!
-    }
+    } 
     
     type Mutation {
     registerUser(name: String!, email: String!, password: String!, confirmPassword: String!, isAdmin: Boolean!): userDataResponse

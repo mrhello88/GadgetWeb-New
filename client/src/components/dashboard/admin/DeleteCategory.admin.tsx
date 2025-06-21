@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../../hooks/store/store';
-import { GetProductsByCategory, DeleteCategory } from '../../../hooks/store/thunk/product.thunk';
+import { GetCategories, DeleteCategory } from '../../../hooks/store/thunk/product.thunk';
 import { Trash2, Search, X } from 'lucide-react';
 import type { productByCategoryResponse, productByCategory } from '../../../hooks/store/slice/product.slices';
 
@@ -21,8 +21,12 @@ const DeleteCategoryComponent = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        if (!productData) {
-          await dispatch(GetProductsByCategory()).unwrap();
+        const result = await dispatch(GetCategories({ 
+          limit: 50, 
+          offset: 0 
+        })).unwrap();
+        if (result.success && result.data) {
+          setCategories(result.data);
         }
       } catch (error) {
         console.error('Failed to fetch categories:', error);
@@ -33,14 +37,7 @@ const DeleteCategoryComponent = () => {
     };
 
     fetchData();
-  }, [dispatch, productData]);
-
-  // Process category data when available
-  useEffect(() => {
-    if (productData && 'data' in productData && Array.isArray(productData.data)) {
-      setCategories(productData.data as productByCategory[]);
-    }
-  }, [productData]);
+  }, [dispatch]);
 
   const handleDeleteCategory = async (categoryId: string) => {
     try {
@@ -52,7 +49,10 @@ const DeleteCategoryComponent = () => {
         toast.success(result.message || 'Category deleted successfully');
         
         // Refresh the categories list
-        await dispatch(GetProductsByCategory()).unwrap();
+        await dispatch(GetCategories({ 
+          limit: 50, 
+          offset: 0 
+        })).unwrap();
       } else {
         toast.error(result.message || 'Failed to delete category');
       }
@@ -74,7 +74,7 @@ const DeleteCategoryComponent = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
       </div>
     );
   }
@@ -101,7 +101,7 @@ const DeleteCategoryComponent = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search categories..."
-            className="pl-9 sm:pl-10 pr-9 sm:pr-10 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm sm:text-base"
+            className="pl-9 sm:pl-10 pr-9 sm:pr-10 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm sm:text-base"
           />
           {searchTerm && (
             <button
@@ -129,7 +129,7 @@ const DeleteCategoryComponent = () => {
                   src={
                         category.image?.startsWith('http')
                         ? category.image
-                        : `${import.meta.env.VITE_API_URL}/categoryImage/${category.image}`
+                        : `http://localhost:5000/categoryImage/${category.image}`
                 
                   }
                   alt={category.category}
@@ -148,7 +148,7 @@ const DeleteCategoryComponent = () => {
                 </p>
                 <button
                   onClick={() => setShowDeleteConfirm(category._id)}
-                  className="w-full px-2 sm:px-4 py-1.5 sm:py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium sm:font-semibold text-sm sm:text-base transition-colors"
+                  className="w-full px-2 sm:px-4 py-1.5 sm:py-2 bg-error-500 hover:bg-error-600 text-white rounded-lg font-medium sm:font-semibold text-sm sm:text-base transition-colors"
                 >
                   <Trash2 className="h-4 w-4 sm:h-5 sm:w-5 inline-block mr-1 sm:mr-2" />
                   Delete Category
@@ -169,7 +169,7 @@ const DeleteCategoryComponent = () => {
                       Cancel
                     </button>
                     <button
-                      className="px-3 sm:px-4 py-1.5 sm:py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm sm:text-base"
+                      className="px-3 sm:px-4 py-1.5 sm:py-2 bg-error-500 text-white rounded-lg hover:bg-error-600 transition-colors text-sm sm:text-base"
                       onClick={() => handleDeleteCategory(category._id)}
                     >
                       Delete

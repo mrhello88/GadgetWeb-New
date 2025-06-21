@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import type React from 'react';
 import { useEffect, useState } from 'react';
@@ -7,7 +7,7 @@ import { ArrowRight, BarChart3 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../hooks/store/store';
-import { GetProductsByCategory } from '../../hooks/store/thunk/product.thunk';
+import { GetCategories } from '../../hooks/store/thunk/product.thunk';
 import type { productByCategory } from '../../hooks/store/slice/product.slices';
 
 type ProductCardProps = {
@@ -33,7 +33,7 @@ const ProductCard = ({ title, description, image, icon, delay, link }: ProductCa
         src={
           image.startsWith('http')
             ? image
-            : `${import.meta.env.VITE_API_URL}/categoryImage/${image}`
+            : `http://localhost:5000/categoryImage/${image}`
         }
         alt={title}
         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
@@ -42,7 +42,7 @@ const ProductCard = ({ title, description, image, icon, delay, link }: ProductCa
     </div>
 
     <div className="relative p-4 sm:p-6">
-      <div className="absolute -top-6 sm:-top-8 left-4 sm:left-6 rounded-full bg-teal-600 p-2 sm:p-3 text-white shadow-lg">
+      <div className="absolute -top-6 sm:-top-8 left-4 sm:left-6 rounded-full bg-primary-600 p-2 sm:p-3 text-white shadow-lg">
         {icon}
       </div>
 
@@ -67,11 +67,12 @@ export default function CategorySection() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const result = await dispatch(GetProductsByCategory()).unwrap();
+        const result = await dispatch(GetCategories({ 
+          limit: 3, 
+          offset: 0 
+        })).unwrap();
         if (result.success && result.data) {
-          // Get the latest 3 categories
-          const latestCategories = result.data.slice(0, 3);
-          setCategories(latestCategories);
+          setCategories(result.data);
         }
       } catch (error) {
         console.error('Failed to fetch categories:', error);
@@ -85,7 +86,7 @@ export default function CategorySection() {
     <section className="relative overflow-hidden bg-white py-12 sm:py-16 md:py-20">
       {/* Decorative elements */}
       <motion.div
-        className="absolute top-5 sm:top-10 right-5 sm:right-10 h-8 sm:h-12 w-8 sm:w-12 bg-yellow-300"
+        className="absolute top-5 sm:top-10 right-5 sm:right-10 h-8 sm:h-12 w-8 sm:w-12 bg-warning-300"
         initial={{ opacity: 0, rotate: 0 }}
         animate={{ opacity: 0.6, rotate: 45 }}
         transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, repeatType: 'reverse' }}
@@ -124,7 +125,7 @@ export default function CategorySection() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
-            Explore Our <span className="text-teal-600">Product Categories</span>
+            Explore Our <span className="text-primary-600">Product Categories</span>
           </motion.h2>
           <motion.p
             className="mx-auto mt-2 sm:mt-4 max-w-2xl text-base sm:text-lg text-gray-600"
@@ -145,7 +146,7 @@ export default function CategorySection() {
               description={category.description}
               image={category.image}
                 icon={<BarChart3 className="h-4 w-4 sm:h-5 sm:w-5" />}
-                link={category._id}
+                link={category.category}
               delay={0.5 + index * 0.2}
             />
           ))}
@@ -169,7 +170,7 @@ export default function CategorySection() {
         >
           <Link
             to="/categories"
-            className="inline-flex items-center gap-2 rounded-lg border border-teal-600 bg-white px-4 sm:px-6 py-2 sm:py-3 text-sm font-medium text-teal-600 transition-colors hover:bg-teal-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-primary-600 bg-white px-4 sm:px-6 py-2 sm:py-3 text-sm font-medium text-primary-600 transition-colors hover:bg-primary-50"
           >
             View All Categories <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
           </Link>
@@ -178,3 +179,4 @@ export default function CategorySection() {
     </section>
   );
 }
+

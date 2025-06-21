@@ -195,7 +195,7 @@ const AboutPage = () => {
       <div className="relative overflow-hidden">
         {/* Decorative background elements */}
         <motion.div
-          className="absolute top-20 right-[10%] w-64 h-64 text-teal-500 opacity-50 z-0"
+          className="absolute top-20 right-[10%] w-64 h-64 text-primary-500 opacity-50 z-0"
           initial={{ scale: 0, rotate: 0 }}
           animate={{ scale: 1, rotate: 45 }}
           transition={{ duration: 1.5, ease: "easeOut" }}
@@ -204,7 +204,7 @@ const AboutPage = () => {
         </motion.div>
 
         <motion.div
-          className="absolute top-[40%] left-[5%] w-40 h-40 text-yellow-500 opacity-50 z-0"
+          className="absolute top-[40%] left-[5%] w-40 h-40 text-warning-500 opacity-50 z-0"
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ duration: 1.5, delay: 0.3, ease: "easeOut" }}
@@ -231,7 +231,7 @@ const AboutPage = () => {
                 transition={{ duration: 0.5 }}
                 className="inline-block mb-4"
               >
-                <span className="px-4 py-1 rounded-full bg-teal-100 text-teal-500 text-sm font-medium">About Us</span>
+                <span className="px-4 py-1 rounded-full bg-primary-100 text-primary-500 text-sm font-medium">About Us</span>
               </motion.div>
 
               <motion.h1
@@ -240,7 +240,7 @@ const AboutPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.2 }}
               >
-                Helping You Make <span className="text-teal-500">Smarter</span> Tech Decisions
+                Helping You Make <span className="text-primary-500">Smarter</span> Tech Decisions
               </motion.h1>
 
               <motion.p
@@ -260,7 +260,7 @@ const AboutPage = () => {
               >
                 <Link
                   to="/categories"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-teal-300 text-white font-medium rounded-lg hover:bg-teal-900 transition-colors group"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-primary-300 text-white font-medium rounded-lg hover:bg-primary-900 transition-colors group"
                 >
                   Explore Our Categories
                   <motion.span
@@ -286,9 +286,9 @@ const AboutPage = () => {
                 initial="hidden"
                 animate={missionControls}
               >
-                <span className="text-yellow-500 font-medium mb-2 inline-block">Our Mission</span>
+                <span className="text-warning-500 font-medium mb-2 inline-block">Our Mission</span>
                 <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">
-                  Empowering Consumers Through <span className="text-teal-500">Technology</span>
+                  Empowering Consumers Through <span className="text-primary-500">Technology</span>
                 </h2>
                 <p className="text-gray-600 mb-6">
                   In today's fast-paced tech world, making the right choice can be overwhelming. That's why we've built
@@ -305,7 +305,7 @@ const AboutPage = () => {
                   whileHover={{ x: 5 }}
                   transition={{ type: "spring", stiffness: 400, damping: 10 }}
                 >
-                  <Link to="/services" className="text-teal-500 font-medium inline-flex items-center gap-1 group">
+                  <Link to="/categories" className="text-primary-500 font-medium inline-flex items-center gap-1 group">
                     Learn about our services
                     <motion.span
                       initial={{ x: 0 }}
@@ -355,7 +355,7 @@ const AboutPage = () => {
           <div className="container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto mb-16">
               <motion.span
-                className="text-yellow-500 font-medium mb-2 inline-block"
+                className="text-warning-500 font-medium mb-2 inline-block"
                 variants={fadeInUp}
                 initial="hidden"
                 animate={teamControls}
@@ -368,7 +368,7 @@ const AboutPage = () => {
                 initial="hidden"
                 animate={teamControls}
               >
-                Meet the <span className="text-teal-500">Experts</span> Behind Our Platform
+                Meet the <span className="text-primary-500">Experts</span> Behind Our Platform
               </motion.h2>
               <motion.p className="text-gray-600" variants={fadeInUp} initial="hidden" animate={teamControls}>
                 Our diverse team brings together expertise in technology, design, and consumer insights to create the
@@ -405,7 +405,7 @@ const AboutPage = () => {
                     <div className="flex justify-center space-x-4">
                       {/* Social icons would go here */}
                       <motion.div
-                        className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center text-teal-500"
+                        className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-500"
                         whileHover={{ scale: 1.2 }}
                       >
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -413,7 +413,7 @@ const AboutPage = () => {
                         </svg>
                       </motion.div>
                       <motion.div
-                        className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-500"
+                        className="w-8 h-8 rounded-full bg-warning-100 flex items-center justify-center text-warning-500"
                         whileHover={{ scale: 1.2 }}
                       >
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -486,7 +486,7 @@ const AboutPage = () => {
                   >
                     <div className="flex-1 md:w-1/2 mb-6 md:mb-0 md:px-8">
                       <motion.div
-                        className={`p-6 rounded-lg shadow-md ${index % 2 === 0 ? "bg-teal-500" : "bg-yellow-500"}`}
+                        className={`p-6 rounded-lg shadow-md ${index % 2 === 0 ? "bg-primary-500" : "bg-warning-500"}`}
                         whileHover={{ y: -5 }}
                         transition={{ type: "spring", stiffness: 300, damping: 10 }}
                       >
@@ -497,12 +497,12 @@ const AboutPage = () => {
                     </div>
 
                     <motion.div
-                      className="absolute left-0 md:left-1/2 w-10 h-10 rounded-full bg-white border-4 border-teal flex items-center justify-center transform md:translate-x-[-50%]"
+                      className="absolute left-0 md:left-1/2 w-10 h-10 rounded-full bg-white border-4 border-primary-500 flex items-center justify-center transform md:translate-x-[-50%]"
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ delay: index * 0.2 + 0.5, type: "spring" }}
                     >
-                      <span className="text-teal-500 font-bold">{index + 1}</span>
+                      <span className="text-primary-500 font-bold">{index + 1}</span>
                     </motion.div>
 
                     <div className="flex-1 md:w-1/2" />
@@ -518,7 +518,7 @@ const AboutPage = () => {
           <div className="container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto mb-16">
               <motion.span
-                className="text-teal-500 font-medium mb-2 inline-block"
+                className="text-primary-500 font-medium mb-2 inline-block"
                 variants={fadeInUp}
                 initial="hidden"
                 animate={valuesControls}
@@ -531,7 +531,7 @@ const AboutPage = () => {
                 initial="hidden"
                 animate={valuesControls}
               >
-                The <span className="text-teal-500">Principles</span> That Guide Us
+                The <span className="text-primary-500">Principles</span> That Guide Us
               </motion.h2>
               <motion.p className="text-gray-600" variants={fadeInUp} initial="hidden" animate={valuesControls}>
                 Our core values shape everything we do, from how we build our platform to how we interact with our users
@@ -556,12 +556,12 @@ const AboutPage = () => {
                   <motion.div
                     className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${
                       index % 4 === 0
-                        ? "bg-teal-100 text-teal-500"
+                        ? "bg-primary-100 text-primary-500"
                         : index % 4 === 1
-                          ? "bg-yellow-100 text-yellow-500"
+                          ? "bg-warning-100 text-warning-500"
                           : index % 4 === 2
                             ? "bg-pink-100 text-pink-500"
-                            : "bg-teal-100 text-teal-500"
+                            : "bg-primary-100 text-primary-500"
                     }`}
                     whileHover={{ rotate: 360 }}
                     transition={{ duration: 0.7 }}
@@ -601,7 +601,7 @@ const AboutPage = () => {
               <motion.div variants={fadeInUp} initial="hidden" animate={ctaControls} transition={{ delay: 0.4 }}>
                 <Link
                   to="/categories"
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-white text-teal-500 font-medium rounded-lg hover:bg-gray-100 transition-colors"
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-white text-primary-500 font-medium rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   Start Comparing Now
                   <motion.span

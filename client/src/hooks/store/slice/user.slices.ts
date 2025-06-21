@@ -2,7 +2,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RegisterUser } from '../thunk/user.thunk';
 import { verifyUser } from '../thunk/user.thunk';
 import { LoginUser } from '../thunk/user.thunk';
-import { getUserProfile, updateUserProfile, uploadProfileImage, getCurrentUserProfile } from '../thunk/user.thunk';
+import { getUserProfile, updateUserProfile, uploadProfileImage, getCurrentUserProfile, getAllUsers } from '../thunk/user.thunk';
 import { jwtDecode } from 'jwt-decode';
 
 interface User {
@@ -30,6 +30,9 @@ interface InitialState {
   profileImageLoading: boolean;
   profileImageError: string | null;
   profileImage: string | null;
+  allUsers: any[];
+  allUsersLoading: boolean;
+  allUsersError: string | null;
 }
 
 const initialState: InitialState = {
@@ -42,6 +45,9 @@ const initialState: InitialState = {
   profileImageLoading: false,
   profileImageError: null,
   profileImage: null,
+  allUsers: [],
+  allUsersLoading: false,
+  allUsersError: null,
 };
 
 const userSlice = createSlice({
@@ -196,6 +202,22 @@ const userSlice = createSlice({
           state.isAdmin = false;
           localStorage.removeItem('token');
         }
+      })
+      
+      // getAllUsers
+      .addCase(getAllUsers.pending, (state) => {
+        state.allUsersLoading = true;
+        state.allUsersError = null;
+      })
+      .addCase(getAllUsers.fulfilled, (state, action) => {
+        state.allUsersLoading = false;
+        state.allUsersError = null;
+        state.allUsers = action.payload.data || [];
+      })
+      .addCase(getAllUsers.rejected, (state, action) => {
+        state.allUsersLoading = false;
+        state.allUsersError = action.payload as string;
+        state.allUsers = [];
       });
   },
 });

@@ -1,26 +1,37 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../../hooks/store/store';
 import { getAllReviews, deleteReview, updateReview, getReviewsByUser } from '../../../hooks/store/thunk/review.thunk';
-import { toggleUserStatus } from '../../../hooks/store/thunk/user.thunk';
+import { toggleUserStatus, getAllUsers } from '../../../hooks/store/thunk/user.thunk';
 import { Review } from '../../../hooks/store/slice/review.slices';
 import { Star, Trash2, Search, X, Eye, EyeOff, Filter, User, RefreshCcw, UserCheck, UserX, ShieldCheck } from 'lucide-react';
 
 // Helper function to get the profile image URL with proper fallback
 const getProfileImageUrl = (avatarPath: string | undefined): string => {
-  if (!avatarPath) return `${import.meta.env.VITE_API_URL}/profileImages/avatar.png`;
+  if (!avatarPath) return `http://localhost:5000/profileImages/avatar.png`;
   if (avatarPath.startsWith('http')) return avatarPath;
-  return `${import.meta.env.VITE_API_URL}/profileImages/${avatarPath}`;
+  return `http://localhost:5000/profileImages/${avatarPath}`;
 };
 
 // Format date
+// Format date
 const formatDate = (dateString: string): string => {
-  const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
-  return new Date(dateString).toLocaleDateString('en-US', options);
-};
+  // Check if the date string exists
+  if (!dateString) return 'Invalid Date';
 
+  // Convert the string to a number before creating a Date object
+  const date = new Date(Number(dateString));
+
+  // Check if the created date is valid
+  if (isNaN(date.getTime())) {
+    return 'Invalid Date';
+  }
+
+  const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+  return date.toLocaleDateString('en-US', options);
+};
 // Get product name by ID
 const getProductName = (productId: string): string => {
   // This would need product data - simplified for now
@@ -30,7 +41,7 @@ const getProductName = (productId: string): string => {
 const UserReviewsComponent = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { loading: reviewLoading } = useSelector((state: RootState) => state.review);
-  const { data: userData } = useSelector((state: RootState) => state.user);
+  const { data: userData, allUsers, allUsersLoading, allUsersError } = useSelector((state: RootState) => state.user);
   
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,10 +55,14 @@ const UserReviewsComponent = () => {
   const [hasMore, setHasMore] = useState(true);
   const limit = 20;
   const [toggleUserStatusId, setToggleUserStatusId] = useState<string | null>(null);
-  const [users, setUsers] = useState<any[]>([]);
 
   // Get current logged-in user ID
   const currentUserId = userData?.data?._id?.toString();
+
+  // Load all users initially
+  useEffect(() => {
+    dispatch(getAllUsers());
+  }, [dispatch]);
 
   // Load all reviews initially (admin view)
   useEffect(() => {
@@ -63,22 +78,6 @@ const UserReviewsComponent = () => {
           if (result.success && result.data) {
             setReviews(prev => page === 0 ? result.data : [...prev, ...result.data]);
             setHasMore(result.data.length === limit);
-            
-            // Extract unique users with status
-            const uniqueUsersMap = new Map();
-            
-            result.data.forEach((review: Review & { userStatus?: string }) => {
-              if (!uniqueUsersMap.has(review.userId)) {
-                uniqueUsersMap.set(review.userId, {
-                  id: review.userId,
-                  name: review.userName,
-                  avatar: review.userAvatar,
-                  status: review.userStatus || 'active' // Default to active if not specified
-                });
-              }
-            });
-            
-            setUsers(Array.from(uniqueUsersMap.values()));
           } else {
             if (page === 0) setReviews([]);
             setHasMore(false);
@@ -195,19 +194,10 @@ const UserReviewsComponent = () => {
       const result = await dispatch(toggleUserStatus(userId)).unwrap();
       
       if (result.success && result.data) {
-        // Update user in the local state
-        const newStatus = result.data.status;
+        // Update user in the local state - refresh all users to get updated status
+        dispatch(getAllUsers());
         
-        // Update users list
-        setUsers(prevUsers => 
-          prevUsers.map(user => 
-            user.id === userId 
-              ? { ...user, status: newStatus } 
-              : user
-          )
-        );
-        
-        toast.success(`User ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully`);
+        toast.success(`User ${result.data.status === 'active' ? 'activated' : 'deactivated'} successfully`);
       } else {
         toast.error(result.message || 'Failed to update user status');
       }
@@ -258,14 +248,14 @@ const UserReviewsComponent = () => {
   const uniqueUsers = [...new Map(reviews.map(review => [review.userId, { id: review.userId, name: review.userName, avatar: review.userAvatar }])).values()];
   
   // Find filtered users based on search
-  const filteredUsers = users.filter(user => 
+  const filteredUsers = allUsers.filter((user: any) => 
     user.name.toLowerCase().includes(userSearchTerm.toLowerCase())
   );
 
   if (loading && reviews.length === 0) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
       </div>
     );
   }
@@ -290,7 +280,7 @@ const UserReviewsComponent = () => {
         {/* User Filter Sidebar */}
         <div className="md:col-span-4 lg:col-span-3 bg-white rounded-lg shadow-md p-3 sm:p-4">
           <h2 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4 flex items-center">
-            <User className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-teal-500" />
+            <User className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-primary-500" />
             Filter by User
           </h2>
           
@@ -304,7 +294,7 @@ const UserReviewsComponent = () => {
               value={userSearchTerm}
               onChange={(e) => setUserSearchTerm(e.target.value)}
               placeholder="Search users..."
-              className="pl-8 sm:pl-10 pr-8 sm:pr-10 py-1.5 sm:py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-xs sm:text-sm"
+              className="pl-8 sm:pl-10 pr-8 sm:pr-10 py-1.5 sm:py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-xs sm:text-sm"
             />
             {userSearchTerm && (
               <button
@@ -329,26 +319,30 @@ const UserReviewsComponent = () => {
           
           {/* User List - with proper scrollbar */}
           <div className="space-y-1 max-h-[200px] sm:max-h-[400px] md:max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
-            {filteredUsers.length > 0 ? (
-              filteredUsers.map((user) => (
-                <div key={user.id} className="flex items-center justify-between">
+            {allUsersLoading ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary-500"></div>
+              </div>
+            ) : filteredUsers.length > 0 ? (
+              filteredUsers.map((user: any) => (
+                <div key={user._id} className="flex items-center justify-between">
                   <button
-                    onClick={() => handleUserSelect(user.id)}
+                    onClick={() => handleUserSelect(user._id)}
                     className={`flex-grow text-left p-1.5 sm:p-2 rounded-md transition-colors flex items-center ${
-                      selectedUserId === user.id
-                        ? 'bg-teal-500 text-white'
+                      selectedUserId === user._id
+                        ? 'bg-primary-500 text-white'
                         : 'hover:bg-gray-100 text-gray-700'
                     }`}
                   >
                     <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gray-200 mr-1.5 sm:mr-2 overflow-hidden flex-shrink-0">
-                      {user.avatar ? (
+                      {user.profileImage ? (
                         <img 
-                          src={getProfileImageUrl(user.avatar)} 
+                          src={getProfileImageUrl(user.profileImage)} 
                           alt={user.name} 
                           className="w-full h-full object-cover"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            target.src = `${import.meta.env.VITE_API_URL}/profileImages/avatar.png`;
+                            target.src = `http://localhost:5000/profileImages/avatar.png`;
                           }}
                         />
                       ) : (
@@ -356,13 +350,13 @@ const UserReviewsComponent = () => {
                         )}
                     </div>
                     <div className="flex flex-col">
-                      <span className="truncate text-xs sm:text-sm">{user.name} {user.id === currentUserId && "(You)"}</span>
+                      <span className="truncate text-xs sm:text-sm">{user.name} {user._id === currentUserId && "(You)"}</span>
                       <div className="flex items-center gap-1">
-                        <span className={`text-[10px] sm:text-xs ${user.status === 'inactive' ? 'text-red-500' : 'text-green-500'}`}>
+                        <span className={`text-[10px] sm:text-xs ${user.status === 'inactive' ? 'text-error-500' : 'text-success-500'}`}>
                           {user.status || 'active'}
                         </span>
-                        {user.id === currentUserId && (
-                          <span className="px-1 sm:px-1.5 py-0.5 bg-teal-100 text-teal-700 text-[10px] sm:text-xs rounded-full">
+                        {user._id === currentUserId && (
+                          <span className="px-1 sm:px-1.5 py-0.5 bg-primary-100 text-primary-700 text-[10px] sm:text-xs rounded-full">
                             Admin
                           </span>
                         )}
@@ -371,9 +365,9 @@ const UserReviewsComponent = () => {
                   </button>
                   
                   {/* Toggle user status button */}
-                  {user.id === currentUserId ? (
+                  {user._id === currentUserId ? (
                     <button
-                      className="ml-1 sm:ml-2 p-1 sm:p-1.5 rounded-full bg-teal-100 text-teal-600 cursor-not-allowed"
+                      className="ml-1 sm:ml-2 p-1 sm:p-1.5 rounded-full bg-primary-100 text-primary-600 cursor-not-allowed"
                       title="You cannot change your own account status"
                       disabled
                     >
@@ -381,16 +375,16 @@ const UserReviewsComponent = () => {
                     </button>
                   ) : (
                     <button
-                      onClick={() => handleToggleUserStatus(user.id, user)}
+                      onClick={() => handleToggleUserStatus(user._id, user)}
                       className={`ml-1 sm:ml-2 p-1 sm:p-1.5 rounded-full ${
                         user.status === 'inactive'
                           ? 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                          : 'bg-green-100 text-green-600 hover:bg-green-200'
+                          : 'bg-success-100 text-success-600 hover:bg-success-200'
                       }`}
-                      disabled={toggleUserStatusId === user.id}
+                      disabled={toggleUserStatusId === user._id}
                       title={user.status === 'inactive' ? 'Activate User' : 'Deactivate User'}
                     >
-                      {toggleUserStatusId === user.id ? (
+                      {toggleUserStatusId === user._id ? (
                         <div className="h-3.5 w-3.5 sm:h-4 sm:w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                       ) : user.status === 'inactive' ? (
                         <UserCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -424,7 +418,7 @@ const UserReviewsComponent = () => {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search reviews..."
-                  className="pl-8 sm:pl-10 pr-8 sm:pr-10 py-1.5 sm:py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-xs sm:text-sm"
+                  className="pl-8 sm:pl-10 pr-8 sm:pr-10 py-1.5 sm:py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-xs sm:text-sm"
                 />
                 {searchTerm && (
                   <button
@@ -444,7 +438,7 @@ const UserReviewsComponent = () => {
                     onClick={() => setStatusFilter('all')}
                     className={`px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
                       statusFilter === 'all'
-                        ? 'bg-teal-500 text-white'
+                        ? 'bg-primary-500 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
@@ -454,7 +448,7 @@ const UserReviewsComponent = () => {
                     onClick={() => setStatusFilter('active')}
                     className={`px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
                       statusFilter === 'active'
-                        ? 'bg-green-500 text-white'
+                        ? 'bg-success-500 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
@@ -486,7 +480,7 @@ const UserReviewsComponent = () => {
             {/* Reviews List with improved scrollable area */}
             {loading || reviewLoading ? (
               <div className="flex justify-center items-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-teal-500"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"></div>
               </div>
             ) : filteredReviews.length > 0 ? (
               <div className="space-y-4 sm:space-y-6 max-h-[400px] sm:max-h-[500px] md:max-h-[600px] overflow-y-auto pr-1 custom-scrollbar">
@@ -507,7 +501,7 @@ const UserReviewsComponent = () => {
                           className="w-8 h-8 sm:w-10 sm:h-10 rounded-full mr-2 sm:mr-3 object-cover border border-gray-200"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            target.src = `${import.meta.env.VITE_API_URL}/profileImages/avatar.png`;
+                            target.src = `http://localhost:5000/profileImages/avatar.png`;
                           }}
                         />
                         <div>
@@ -516,14 +510,14 @@ const UserReviewsComponent = () => {
                             <span className="text-gray-500 text-[10px] sm:text-xs">({formatDate(review.createdAt)})</span>
                             
                             {/* Find the user in users array to show status */}
-                            {users.find(u => u.id === review.userId)?.status === 'inactive' && (
-                              <span className="px-1.5 py-0.5 bg-red-100 text-red-700 text-[10px] sm:text-xs rounded-full">
+                            {allUsers.find((u: any) => u._id === review.userId)?.status === 'inactive' && (
+                              <span className="px-1.5 py-0.5 bg-error-100 text-error-700 text-[10px] sm:text-xs rounded-full">
                                 Inactive User
                               </span>
                             )}
                             
                             {/* Product info */}
-                            <span className="ml-1 sm:ml-2 px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[10px] sm:text-xs rounded-full">
+                            <span className="ml-1 sm:ml-2 px-1.5 py-0.5 bg-info-100 text-blue-700 text-[10px] sm:text-xs rounded-full">
                               Product: {getProductName(review.productId)}
                             </span>
                             
@@ -539,7 +533,7 @@ const UserReviewsComponent = () => {
                               <Star
                                 key={i}
                                 className={`h-3 w-3 sm:h-4 sm:w-4 ${
-                                  i < review.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                                  i < review.rating ? 'text-warning-500 fill-current' : 'text-gray-300'
                                 }`}
                               />
                             ))}
@@ -553,7 +547,7 @@ const UserReviewsComponent = () => {
                           className={`p-1 sm:p-2 rounded-full ${
                             review.status === 'disabled'
                               ? 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                              : 'bg-green-100 text-green-600 hover:bg-green-200'
+                              : 'bg-success-100 text-success-600 hover:bg-success-200'
                           }`}
                           onClick={() => handleToggleStatus(
                             review._id, 
@@ -572,7 +566,7 @@ const UserReviewsComponent = () => {
                         
                         {/* Delete button */}
                         <button
-                          className="p-1 sm:p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200"
+                          className="p-1 sm:p-2 rounded-full bg-error-100 text-error-600 hover:bg-error-200"
                           onClick={() => setShowDeleteConfirm(review._id)}
                         >
                           <Trash2 className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -610,7 +604,7 @@ const UserReviewsComponent = () => {
                             Cancel
                           </button>
                           <button
-                            className="px-2 sm:px-4 py-1 sm:py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-xs sm:text-sm"
+                            className="px-2 sm:px-4 py-1 sm:py-2 bg-error-500 text-white rounded-lg hover:bg-error-600 transition-colors text-xs sm:text-sm"
                             onClick={() => handleDeleteReview(review._id)}
                           >
                             Delete
@@ -627,7 +621,7 @@ const UserReviewsComponent = () => {
                     <button
                       onClick={loadMoreReviews}
                       disabled={loading}
-                      className="px-3 sm:px-4 py-1.5 sm:py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors text-xs sm:text-sm"
+                      className="px-3 sm:px-4 py-1.5 sm:py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors text-xs sm:text-sm"
                     >
                       {loading ? 'Loading...' : 'Load More Reviews'}
                     </button>
@@ -638,7 +632,7 @@ const UserReviewsComponent = () => {
               <div className="text-center py-6 sm:py-10 text-gray-500">
                 <p className="text-sm sm:text-base">No reviews found matching your filters</p>
                 <button 
-                  className="mt-2 text-teal-500 hover:underline text-xs sm:text-sm"
+                  className="mt-2 text-primary-500 hover:underline text-xs sm:text-sm"
                   onClick={() => {
                     setSearchTerm('');
                     setStatusFilter('all');

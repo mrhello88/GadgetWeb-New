@@ -1,4 +1,4 @@
-import type React from 'react';
+﻿import type React from 'react';
 
 import { useState, useRef, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
@@ -6,7 +6,9 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronRight, ChevronLeft, Star, ArrowRight } from 'lucide-react';
 import { useSelector } from 'react-redux';
-import { RootState } from '../hooks/store/store';
+import { RootState, AppDispatch } from '../hooks/store/store';
+import { useAppDispatch } from '../hooks/store/hooks';
+import { GetCategories } from '../hooks/store/thunk/product.thunk';
 import type {
   productResponse,
   productByCategoryResponse,
@@ -101,15 +103,37 @@ const CategoryPage: React.FC = () => {
   const categoryRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [categoryInView, setCategoryInView] = useState<boolean[]>([]);
 
-  const { data, loading } = useSelector((state: RootState) => state.product);
+  const { data, loading, categories: categoriesFromStore } = useSelector((state: RootState) => state.product);
   const { isLoggedIn } = useSelector((state: RootState) => state.user);
 
-  // Get categories from Redux data
+  const dispatch = useAppDispatch();
+
+  // Load categories with products on mount
   useEffect(() => {
-    if (data && isProductByCategoryResponse(data) && data.data) {
-      setCategories(data.data);
+    const loadCategoriesWithProducts = async () => {
+      try {
+        // Load all categories with their products
+        await dispatch(GetCategories({
+          limit: 20,
+          offset: 0
+        }));
+      } catch (error) {
+        console.error('Failed to load categories:', error);
+      }
+    };
+
+    // Only load if we don't have categories already
+    if (categories.length === 0 && !categoriesFromStore.loading) {
+      loadCategoriesWithProducts();
     }
-  }, [data]); // Only run when data changes
+  }, [dispatch, categories.length, categoriesFromStore.loading]);
+
+  // Get categories from Redux categories state
+  useEffect(() => {
+    if (categoriesFromStore.data && categoriesFromStore.data.length > 0) {
+      setCategories(categoriesFromStore.data);
+    }
+  }, [categoriesFromStore.data]);
 
   // Update categoryInView and animation controls when categories change
   useEffect(() => {
@@ -169,10 +193,10 @@ const CategoryPage: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (loading || categoriesFromStore.loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-teal-500"></div>
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary-500"></div>
       </div>
     );
   }
@@ -183,6 +207,12 @@ const CategoryPage: React.FC = () => {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">No Categories Found</h2>
           <p className="text-gray-600">Please check back later for available categories.</p>
+          <button 
+            onClick={() => dispatch(GetCategories({ limit: 20, offset: 0 }))}
+            className="mt-4 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+          >
+            Retry Loading Categories
+          </button>
         </div>
       </div>
     );
@@ -201,7 +231,7 @@ const CategoryPage: React.FC = () => {
       <div className="relative overflow-hidden">
         {/* Decorative background elements */}
         <motion.div
-          className="absolute top-20 right-[5%] w-64 h-64 text-teal-500 opacity-50 z-0"
+          className="absolute top-20 right-[5%] w-64 h-64 text-primary-500 opacity-50 z-0"
           initial={{ scale: 0, rotate: 0 }}
           animate={{ scale: 1, rotate: 45 }}
           transition={{ duration: 1.5, ease: 'easeOut' }}
@@ -210,7 +240,7 @@ const CategoryPage: React.FC = () => {
         </motion.div>
 
         <motion.div
-          className="absolute top-[30%] left-[3%] w-40 h-40 text-yellow-500 opacity-50 z-0"
+          className="absolute top-[30%] left-[3%] w-40 h-40 text-warning-500 opacity-50 z-0"
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ duration: 1.5, delay: 0.3, ease: 'easeOut' }}
@@ -228,7 +258,7 @@ const CategoryPage: React.FC = () => {
         </motion.div>
 
         <motion.div
-          className="absolute bottom-[40%] left-[10%] w-32 h-32 text-teal-500 opacity-50 z-0"
+          className="absolute bottom-[40%] left-[10%] w-32 h-32 text-primary-500 opacity-50 z-0"
           initial={{ scale: 0, rotate: 0 }}
           animate={{ scale: 1, rotate: 90 }}
           transition={{ duration: 1.5, delay: 0.9, ease: 'easeOut' }}
@@ -249,7 +279,7 @@ const CategoryPage: React.FC = () => {
         </motion.div>
 
         <motion.div
-          className="absolute top-[15%] left-[15%] w-24 h-24 text-yellow-500 opacity-30 z-0"
+          className="absolute top-[15%] left-[15%] w-24 h-24 text-warning-500 opacity-30 z-0"
           initial={{ scale: 0 }}
           animate={{
             scale: [1, 1.3, 1],
@@ -261,7 +291,7 @@ const CategoryPage: React.FC = () => {
         </motion.div>
 
         <motion.div
-          className="absolute bottom-[20%] left-[20%] w-48 h-12 text-teal-500 opacity-40 z-0"
+          className="absolute bottom-[20%] left-[20%] w-48 h-12 text-primary-500 opacity-40 z-0"
           initial={{ scale: 0, x: -50 }}
           animate={{
             scale: 1,
@@ -283,7 +313,7 @@ const CategoryPage: React.FC = () => {
                 transition={{ duration: 0.5 }}
                 className="inline-block mb-4"
               >
-                <span className="px-4 py-1 rounded-full bg-teal-100 text-teal-500 text-sm font-medium">
+                <span className="px-4 py-1 rounded-full bg-primary-100 text-primary-500 text-sm font-medium">
                   Categories
                 </span>
               </motion.div>
@@ -294,7 +324,7 @@ const CategoryPage: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.2 }}
               >
-                Explore Our <span className="text-teal-500">Product</span> Categories
+                Explore Our <span className="text-primary-500">Product</span> Categories
               </motion.h1>
 
               <motion.p
@@ -389,7 +419,7 @@ const CategoryPage: React.FC = () => {
                       src={
                         category.image?.startsWith('http')
                           ? category.image
-                          : `${import.meta.env.VITE_API_URL}/categoryImage/${category.image}`
+                          : `http://localhost:5000/categoryImage/${category.image}`
                       }
                       alt={category.category}
                       className="w-full h-full object-cover"
@@ -413,12 +443,12 @@ const CategoryPage: React.FC = () => {
                 >
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="text-2xl font-bold text-gray-900">
-                      Latest <span className="text-teal-500">{category.category}</span>
+                      Latest <span className="text-primary-500">{category.category}</span>
                     </h3>
                     <div className="flex gap-2">
                       <motion.button
                         onClick={() => scroll(category._id, 'left')}
-                        className="p-2 rounded-full bg-teal-100 text-teal-500 hover:bg-teal-200 transition-colors"
+                        className="p-2 rounded-full bg-primary-100 text-primary-500 hover:bg-primary-200 transition-colors"
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         aria-label={`Scroll ${category.category} left`}
@@ -427,7 +457,7 @@ const CategoryPage: React.FC = () => {
                       </motion.button>
                       <motion.button
                         onClick={() => scroll(category._id, 'right')}
-                        className="p-2 rounded-full bg-teal-100 text-teal-500 hover:bg-teal-200 transition-colors"
+                        className="p-2 rounded-full bg-primary-100 text-primary-500 hover:bg-primary-200 transition-colors"
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         aria-label={`Scroll ${category.category} right`}
@@ -452,20 +482,25 @@ const CategoryPage: React.FC = () => {
                         >
                           <div className="h-40 overflow-hidden bg-gray-100 flex items-center justify-center">
                             <img
-                              // src={product.images[0] || '/placeholder.svg'}
                               src={
-                                product.images[0]?.startsWith('http')
-                                  ? product.images[0]
-                                  : `${import.meta.env.VITE_API_URL}/images/${product.images[0]}`
+                                product.images && product.images[0]
+                                  ? product.images[0].startsWith('http')
+                                    ? product.images[0]
+                                    : `http://localhost:5000/images/${product.images[0]}`
+                                  : '/placeholder.svg'
                               }
                               alt={product.name}
                               className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = '/placeholder.svg';
+                              }}
                             />
                           </div>
                           <div className="p-4">
                             <div className="flex justify-between items-start mb-2">
                               <h4 className="text-lg font-semibold text-gray-900">{product.name}</h4>
-                              <span className="text-lg font-bold text-teal-500">
+                              <span className="text-lg font-bold text-primary-500">
                                 {formatPrice(product.price)}
                               </span>
                             </div>
@@ -473,22 +508,24 @@ const CategoryPage: React.FC = () => {
                               {product.description}
                             </p>
                             {/* Displaying product rating with stars */}
-                            <div className="flex items-center mb-4">
-                              {[...Array(5)].map((_, i) => (
-                                <Star
-                                  key={i}
-                                  className={`h-4 w-4 ${
-                                    i < Math.floor(4.5) ? 'text-yellow-500' : 'text-gray-300'
-                                  }`}
-                                  fill={i < Math.floor(4.5) ? 'currentColor' : 'none'}
-                                />
-                              ))}
-                              <span className="text-sm text-gray-600 ml-1">{4.5}</span>
-                            </div>
+                            {product.rating && product.rating > 0 && product.reviewCount && product.reviewCount > 0 && (
+                              <div className="flex items-center mb-4">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`h-4 w-4 ${
+                                      i < Math.floor(product.rating || 0) ? 'text-warning-500' : 'text-gray-300'
+                                    }`}
+                                    fill={i < Math.floor(product.rating || 0) ? 'currentColor' : 'none'}
+                                  />
+                                ))}
+                                <span className="text-sm text-gray-600 ml-1">{product.rating.toFixed(1)}</span>
+                              </div>
+                            )}
                             <div className="flex gap-2">
                               <Link
                                 to={`/product/${product._id}`}
-                                className="flex-1 py-2 px-3 bg-teal-200 text-white text-sm font-medium rounded-lg hover:bg-teal-900 transition-colors text-center"
+                                className="flex-1 py-2 px-3 bg-primary-200 text-white text-sm font-medium rounded-lg hover:bg-primary-900 transition-colors text-center"
                               >
                                 View Details
                               </Link>
@@ -529,8 +566,8 @@ const CategoryPage: React.FC = () => {
                 animate={categoryInView[index] ? 'visible' : 'hidden'}
               >
                 <Link
-                  to={`/category/${category._id}`}
-                  className="inline-flex items-center gap-2 px-6 py-3 border border-teal text-teal-500 font-medium rounded-lg hover:bg-teal-100 transition-colors group"
+                  to={`/category/${category.category}`}
+                  className="inline-flex items-center gap-2 px-6 py-3 border border-primary-500 text-primary-500 font-medium rounded-lg hover:bg-primary-100 transition-colors group"
                 >
                   View All {category.category}
                   <motion.span
@@ -574,7 +611,7 @@ const CategoryPage: React.FC = () => {
               >
                 <Link
                   to="/contact"
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-white text-teal-500 font-medium rounded-lg hover:bg-gray-100 transition-colors"
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-white text-primary-500 font-medium rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   Request a Product
                   <motion.span
@@ -623,3 +660,5 @@ const CategoryPage: React.FC = () => {
 };
 
 export default CategoryPage;
+
+

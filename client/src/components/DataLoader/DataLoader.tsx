@@ -5,7 +5,13 @@ import { GetProductsByCategory } from '../../hooks/store/thunk/product.thunk';
 import { toast } from 'react-toastify';
 import { Loader2 } from 'lucide-react';
 
-export const ProductsByCategoryLoader = ({ children }: { children: ReactNode }) => {
+export const ProductsByCategoryLoader = ({ 
+  children, 
+  category 
+}: { 
+  children: ReactNode;
+  category: string;
+}) => {
   const dispatch = useDispatch<AppDispatch>();
   const { data, loading, error } = useSelector((state: RootState) => state.product);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -14,12 +20,18 @@ export const ProductsByCategoryLoader = ({ children }: { children: ReactNode }) 
   useEffect(() => {
     const loadProducts = async () => {
       try {
-        if (!data) {
-          const result = await dispatch(GetProductsByCategory());
+        if (!data && category) {
+          const result = await dispatch(GetProductsByCategory({
+            category,
+            limit: 20,
+            offset: 0,
+            sortBy: 'createdAt',
+            sortOrder: 'desc'
+          }));
           const payload = result.payload as any;
           
           if (payload.success) {
-            console.log('✅ Products loaded successfully:', payload.data);
+         
             setHasLoadedBefore(true);
           } else {
             console.error('❌ Failed to load products:', payload);
@@ -39,8 +51,10 @@ export const ProductsByCategoryLoader = ({ children }: { children: ReactNode }) 
       }
     };
 
-    loadProducts();
-  }, [dispatch, data, hasLoadedBefore]);
+    if (category) {
+      loadProducts();
+    }
+  }, [dispatch, data, hasLoadedBefore, category]);
 
   // Skip the loading screen if we've loaded data before
   if (hasLoadedBefore) {
@@ -51,7 +65,7 @@ export const ProductsByCategoryLoader = ({ children }: { children: ReactNode }) 
   if ((loading || isInitialLoad) && !data) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-        <Loader2 className="w-12 h-12 text-teal-600 animate-spin" />
+        <Loader2 className="w-12 h-12 text-primary-600 animate-spin" />
         <p className="mt-4 text-gray-700">Loading products...</p>
       </div>
     );
@@ -61,12 +75,18 @@ export const ProductsByCategoryLoader = ({ children }: { children: ReactNode }) 
   if (error && !data) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md max-w-md">
+        <div className="bg-error-100 border border-error-400 text-error-700 px-4 py-3 rounded-md max-w-md">
           <p className="font-medium">Failed to load products</p>
           <p className="text-sm">{error}</p>
           <button 
-            className="mt-4 bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700"
-            onClick={() => dispatch(GetProductsByCategory())}
+            className="mt-4 bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700"
+            onClick={() => dispatch(GetProductsByCategory({
+              category,
+              limit: 20,
+              offset: 0,
+              sortBy: 'createdAt',
+              sortOrder: 'desc'
+            }))}
           >
             Try Again
           </button>

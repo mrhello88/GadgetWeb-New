@@ -91,15 +91,15 @@ export const Login = ({ role }: { role: string }) => {
               <input
                 type="email"
                 id="email"
-                className={`bg-gray-50 border text-gray-900 sm:text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white
-                  ${errors.email ? 'border-red-500' : 'border-gray-300'}`}
+                className={`bg-gray-50 border text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white
+                  ${errors.email ? 'border-error-500' : 'border-gray-300'}`}
                 placeholder="name@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
               {errors.email && (
-                <p className="mt-1 text-sm text-red-500">{errors.email}</p>
+                <p className="mt-1 text-sm text-error-500">{errors.email}</p>
               )}
             </div>
             <div>
@@ -112,20 +112,20 @@ export const Login = ({ role }: { role: string }) => {
               <input
                 type="password"
                 id="password"
-                className={`bg-gray-50 border text-gray-900 sm:text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white
-                  ${errors.password ? 'border-red-500' : 'border-gray-300'}`}
+                className={`bg-gray-50 border text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white
+                  ${errors.password ? 'border-error-500' : 'border-gray-300'}`}
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
               {errors.password && (
-                <p className="mt-1 text-sm text-red-500">{errors.password}</p>
+                <p className="mt-1 text-sm text-error-500">{errors.password}</p>
               )}
             </div>
             <button
               type="submit"
-              className="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-blue-800"
+              className="w-full text-white bg-primary-500 hover:bg-primary-600 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-colors duration-200"
             >
               Login
             </button>
@@ -134,7 +134,7 @@ export const Login = ({ role }: { role: string }) => {
                 <button
                   type="button"
                   onClick={handleRegister}
-                  className="w-full text-blue-600 border border-blue-600 hover:bg-blue-50 dark:hover:bg-gray-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+                  className="w-full text-primary-600 border border-primary-600 hover:bg-primary-50 dark:hover:bg-gray-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-colors duration-200"
                 >
                   Register
                 </button>

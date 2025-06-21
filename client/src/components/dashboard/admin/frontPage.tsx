@@ -1,4 +1,4 @@
-import { useSelector } from 'react-redux';
+﻿import { useSelector } from 'react-redux';
 import { RootState } from '../../../hooks/store/store';
 import { motion } from 'framer-motion';
 import { useProfileLoader } from '../../../hooks/useProfileLoader';
@@ -11,15 +11,15 @@ export const FrontPage = () => {
     
     // Helper function to get the profile image URL
     const getProfileImageUrl = (imagePath: string | undefined): string => {
-        if (!imagePath) return `${import.meta.env.VITE_API_URL}/profileImages/avatar.png`;
+        if (!imagePath) return `http://localhost:5000/profileImages/avatar.png`;
         if (imagePath.startsWith('http')) return imagePath;
-        return `${import.meta.env.VITE_API_URL}/profileImages/${imagePath}`;
+        return `http://localhost:5000/profileImages/${imagePath}`;
     };
     
     // Get the profile image URL
     const profileImage = userData?.data?.profileImage 
         ? getProfileImageUrl(userData.data.profileImage)
-        : `${import.meta.env.VITE_API_URL}/profileImages/avatar.png`;
+        : `http://localhost:5000/profileImages/avatar.png`;
     
     return (
         <div className="flex flex-col items-center justify-center h-[calc(100vh-2rem)] bg-gray-100">
@@ -31,7 +31,7 @@ export const FrontPage = () => {
             >
                 <div className="mb-6 flex justify-center">
                     <motion.div
-                        className="h-24 w-24 rounded-full overflow-hidden border-4 border-teal-500"
+                        className="h-24 w-24 rounded-full overflow-hidden border-4 border-primary-500"
                         whileHover={{ scale: 1.05 }}
                         transition={{ type: "spring", stiffness: 400 }}
                     >
@@ -41,7 +41,7 @@ export const FrontPage = () => {
                             className="w-full h-full object-cover"
                             onError={(e) => {
                                 const target = e.target as HTMLImageElement;
-                                target.src = `${import.meta.env.VITE_API_URL}/profileImages/avatar.png`;
+                                target.src = `http://localhost:5000/profileImages/avatar.png`;
                             }}
                         />
                     </motion.div>
@@ -66,7 +66,7 @@ export const FrontPage = () => {
                 </motion.p>
                 
                 <motion.div
-                    className="p-4 bg-teal-50 rounded-lg border border-teal-100 text-teal-700"
+                    className="p-4 bg-primary-50 rounded-lg border border-primary-100 text-primary-700"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.5 }}

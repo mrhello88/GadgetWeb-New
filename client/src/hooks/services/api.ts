@@ -1,37 +1,32 @@
-// If you want automatic refresh token (if token expires and API returns 401), you can also modify the response interceptor to try refreshing the token before rejecting
-
 import axios from 'axios';
-// import { getCookie } from 'cookies-next';
-import { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 export const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
-const requestInterceptors = (config: InternalAxiosRequestConfig) => {
-  const token = localStorage.getItem('token'); // <-- fix here
+axiosInstance.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
-};
-//
-//const requrestInterceptors = (config: InternalAxiosRequestConfig) => {
-//   const token = getCookie('token');
-//   if (token && config.headers) {
-//     config.headers.Authorization = `Bearer ${token}`;
-//   }
-//   return config;
-// };
-const responseInterceptors = (response: AxiosResponse) => response;
-
-axiosInstance.interceptors.request.use(requestInterceptors);
-
-axiosInstance.interceptors.response.use(responseInterceptors, (error) => {
-  const { response } = error;
-  const expectedError = response && response.status >= 400 && response.status < 500;
-  if (!expectedError) {
-    console.log('Logging the error', error);
-    return Promise.reject(error.response);
-  }
-  return Promise.reject(error.response);
 });
+
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/user/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default axiosInstance;

@@ -39,16 +39,14 @@ const ReviewForm = ({ productId, onReviewAdded }: ReviewFormProps) => {
     }
     
     try {
-      console.log("Submitting review:", { productId, rating, title, text });
+    
       const result = await dispatch(createReview({
         productId,
         rating,
         title: title.trim(),
         text: text.trim()
       })).unwrap();
-      
-      console.log("Review submission result:", result);
-      
+ 
       if (result.success) {
         setSubmitMessage('Review submitted successfully!');
         toast.success('Review submitted successfully!');
@@ -79,7 +77,7 @@ const ReviewForm = ({ productId, onReviewAdded }: ReviewFormProps) => {
         <p className="text-gray-600 mb-4">Please log in to write a review</p>
         <a 
           href="/login" 
-          className="inline-block px-6 py-2 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors"
+          className="inline-block px-6 py-2 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors"
         >
           Log In
         </a>
@@ -115,7 +113,7 @@ const ReviewForm = ({ productId, onReviewAdded }: ReviewFormProps) => {
                 <Star 
                   className={`h-8 w-8 ${
                     (hoverRating !== null ? star <= hoverRating : star <= rating)
-                      ? 'text-yellow-500 fill-current'
+                      ? 'text-warning-500 fill-current'
                       : 'text-gray-300'
                   }`}
                 />
@@ -136,7 +134,7 @@ const ReviewForm = ({ productId, onReviewAdded }: ReviewFormProps) => {
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-300 focus:border-teal-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-500"
             placeholder="Summarize your experience"
             maxLength={100}
             required
@@ -151,7 +149,7 @@ const ReviewForm = ({ productId, onReviewAdded }: ReviewFormProps) => {
             id="review-text"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-300 focus:border-teal-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-500"
             placeholder="Share your thoughts about this product"
             rows={5}
             maxLength={1000}
@@ -164,7 +162,7 @@ const ReviewForm = ({ productId, onReviewAdded }: ReviewFormProps) => {
         
         {submitMessage && (
           <div className={`mb-4 p-3 rounded-lg ${
-            submitMessage.includes('success') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+            submitMessage.includes('success') ? 'bg-success-50 text-success-700' : 'bg-error-50 text-error-700'
           }`}>
             {submitMessage}
           </div>
@@ -173,7 +171,7 @@ const ReviewForm = ({ productId, onReviewAdded }: ReviewFormProps) => {
         <div className="flex justify-end">
           <motion.button
             type="submit"
-            className="px-6 py-2 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors"
+            className="px-6 py-2 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             disabled={loading}

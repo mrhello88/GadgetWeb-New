@@ -46,7 +46,7 @@ const Footer = () => {
     >
       {/* Decorative elements */}
       <motion.div
-        className="absolute top-10 right-[5%] h-16 w-16 rounded-full border-4 border-teal-400/30"
+        className="absolute top-10 right-[5%] h-16 w-16 rounded-full border-4 border-primary-400/30"
         initial={{ opacity: 0, scale: 0 }}
         animate={{ opacity: 0.7, scale: 1 }}
         transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, repeatType: 'reverse' }}
@@ -81,7 +81,7 @@ const Footer = () => {
               <span className="relative">
                 Quick Links
                 <motion.span
-                  className="absolute -bottom-1 left-0 h-0.5 bg-teal-500"
+                  className="absolute -bottom-1 left-0 h-0.5 bg-primary-500"
                   initial={{ width: 0 }}
                   whileInView={{ width: '100%' }}
                   transition={{ delay: 0.5, duration: 0.5 }}
@@ -93,10 +93,10 @@ const Footer = () => {
                 <motion.li key={index} variants={itemVariants}>
                   <Link
                     to={link.to}
-                    className="text-base text-gray-600 hover:text-teal-600 transition-colors duration-200 inline-flex items-center group"
+                    className="text-base text-gray-600 hover:text-primary-600 transition-colors duration-200 inline-flex items-center group"
                   >
                     <motion.span
-                      className="inline-block w-1 h-1 rounded-full bg-teal-500 mr-2 opacity-0 group-hover:opacity-100"
+                      className="inline-block w-1 h-1 rounded-full bg-primary-500 mr-2 opacity-0 group-hover:opacity-100"
                       initial={{ scale: 0 }}
                       whileInView={{ scale: 1 }}
                       transition={{ delay: 0.3 + index * 0.1 }}
@@ -110,10 +110,10 @@ const Footer = () => {
                 <motion.li key="admin-login-link" variants={itemVariants}>
                   <Link
                     to="/admin/login"
-                    className="text-base text-gray-600 hover:text-teal-600 transition-colors duration-200 inline-flex items-center group"
+                    className="text-base text-gray-600 hover:text-primary-600 transition-colors duration-200 inline-flex items-center group"
                   >
                     <motion.span
-                      className="inline-block w-1 h-1 rounded-full bg-teal-500 mr-2 opacity-0 group-hover:opacity-100"
+                      className="inline-block w-1 h-1 rounded-full bg-primary-500 mr-2 opacity-0 group-hover:opacity-100"
                       initial={{ scale: 0 }}
                       whileInView={{ scale: 1 }}
                       transition={{ delay: 0.3 + navLinks.length * 0.1 }}
@@ -178,7 +178,7 @@ const Footer = () => {
               <span className="relative">
                 Follow Us
                 <motion.span
-                  className="absolute -bottom-1 left-0 h-0.5 bg-yellow-500"
+                  className="absolute -bottom-1 left-0 h-0.5 bg-warning-500"
                   initial={{ width: 0 }}
                   whileInView={{ width: '100%' }}
                   transition={{ delay: 0.7, duration: 0.5 }}
@@ -191,13 +191,13 @@ const Footer = () => {
                   href="https://twitter.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-teal-600 transition-colors duration-200 flex items-center gap-2 group"
+                  className="hover:text-primary-600 transition-colors duration-200 flex items-center gap-2 group"
                 >
                   <motion.div
-                    className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-200 group-hover:bg-teal-100"
+                    className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-200 group-hover:bg-primary-100"
                     whileHover={{ rotate: 15 }}
                   >
-                    <Twitter className="h-4 w-4 text-gray-700 group-hover:text-teal-600" />
+                    <Twitter className="h-4 w-4 text-gray-700 group-hover:text-primary-600" />
                   </motion.div>
                   <span>Twitter</span>
                   <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -225,13 +225,13 @@ const Footer = () => {
                   href="https://instagram.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-yellow-600 transition-colors duration-200 flex items-center gap-2 group"
+                  className="hover:text-warning-600 transition-colors duration-200 flex items-center gap-2 group"
                 >
                   <motion.div
-                    className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-200 group-hover:bg-yellow-100"
+                    className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-200 group-hover:bg-warning-100"
                     whileHover={{ rotate: 15 }}
                   >
-                    <Instagram className="h-4 w-4 text-gray-700 group-hover:text-yellow-600" />
+                    <Instagram className="h-4 w-4 text-gray-700 group-hover:text-warning-600" />
                   </motion.div>
                   <span>Instagram</span>
                   <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -259,13 +259,13 @@ const Footer = () => {
                 key={i}
                 className={`inline-block h-1 w-1 rounded-full ${
                   i === 0
-                    ? 'bg-teal-500'
+                    ? 'bg-primary-500'
                     : i === 1
                     ? 'bg-pink-500'
                     : i === 2
-                    ? 'bg-yellow-500'
+                    ? 'bg-warning-500'
                     : i === 3
-                    ? 'bg-teal-300'
+                    ? 'bg-primary-300'
                     : 'bg-pink-300'
                 }`}
                 initial={{ scale: 0 }}

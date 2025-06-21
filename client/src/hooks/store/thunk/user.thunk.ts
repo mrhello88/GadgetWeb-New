@@ -88,7 +88,6 @@ export const verifyUser = createAsyncThunk('user/verifyUser', async (token: stri
     );
   } catch (error: unknown) {
     if (error instanceof Error) {
-      console.log(error, 'error verifyUser');
       return thunkApi.rejectWithValue(error.message);
     }
   }
@@ -285,6 +284,47 @@ export const uploadProfileImage = createAsyncThunk(
       if (error instanceof Error) {
         return thunkApi.rejectWithValue(error.message);
       }
+    }
+  }
+);
+
+//get all users
+export const getAllUsers = createAsyncThunk(
+  'user/getAllUsers',
+  async (_, thunkApi) => {
+    try {
+      const response = await axiosInstance.post('/graphql', {
+        query: `
+          query GetAllUsers {
+            getUsers {
+              _id
+              name
+              email
+              isAdmin
+              profileImage
+              status
+            }
+          }
+        `
+      });
+
+      const responseData = response.data;
+      
+      if (responseData.errors) {
+        return thunkApi.rejectWithValue({
+          message: responseData.errors[0].message,
+        });
+      }
+
+      return {
+        success: true,
+        data: responseData.data.getUsers,
+        message: 'Users fetched successfully'
+      };
+    } catch (error: any) {
+      return thunkApi.rejectWithValue({
+        message: error.message || 'Something went wrong',
+      });
     }
   }
 );

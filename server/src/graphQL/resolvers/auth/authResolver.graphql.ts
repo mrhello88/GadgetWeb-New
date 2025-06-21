@@ -59,10 +59,10 @@ export const authResolvers = {
     getUsers: async () => {
       try {
         const users = await UserModel.find();
-        return { success: true, data: users, message: 'Users fetched successfully' };
+        return users;
       } catch (error: unknown) {
-        return { success: false, data: null, message: `Error fetching users: ${error}` };
-      }
+        throw new Error(`Error fetching users: ${error}`);
+      } 
     },
   },
 

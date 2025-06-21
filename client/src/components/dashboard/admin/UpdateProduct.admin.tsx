@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -22,11 +22,11 @@ import {
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
-import { GetAllProducts, GetProductById, UpdateProduct } from '../../../hooks/store/thunk/product.thunk';
+import { GetAllProducts, GetProductById, UpdateProduct, GetProductsByCategory, GetCategories } from '../../../hooks/store/thunk/product.thunk';
+import { useLoadMore } from '../../../hooks/usePagination';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../../hooks/store/store';
-import { Product } from '../../../hooks/store/slice/product.slices';
-
+import { Product, productByCategory, productByCategoryResponse } from '../../../hooks/store/slice/product.slices';
 // Animation variants
 const fadeInUp = {
   hidden: { opacity: 0, y: 40 },
@@ -126,6 +126,13 @@ const defaultSpecifications: Record<string, Specification[]> = {
   ],
 };
 
+// Type guard for category response
+const isProductByCategoryResponse = (
+  data: any
+): data is productByCategoryResponse => {
+  return data && data.success && Array.isArray(data.data);
+};
+
 // Main UpdateProductPage component
 const UpdateProductPage = () => {
   const navigate = useNavigate();
@@ -133,6 +140,7 @@ const UpdateProductPage = () => {
   
   // State for product selection
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [isProductSelected, setIsProductSelected] = useState(false);
   
@@ -158,13 +166,14 @@ const UpdateProductPage = () => {
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Redux state
-  const { loading, error, data } = useSelector((state: RootState) => state.product);
+  const { allProducts, loading, error, data } = useSelector((state: RootState) => state.product);
+  const { loadMoreProducts } = useLoadMore();
 
   // Initial data fetch for product list
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const result = await dispatch(GetAllProducts()).unwrap();
+        const result = await dispatch(GetAllProducts({ limit: 20, offset: 0 })).unwrap();
         if (!result.success) {
           toast.error(result.message || 'Failed to fetch products');
           return;
@@ -178,30 +187,50 @@ const UpdateProductPage = () => {
 
     // Helper function to check if we have valid products data
     const hasValidProductsData = () => {
-      if (!data) return false;
-      if (!('data' in data)) return false;
-      if (!Array.isArray((data as any).data)) return false;
-      return (data as any).data.length > 0;
+      return allProducts.data.length > 0;
     };
                       
     if (!isInitialized || !hasValidProductsData()) {
       fetchData();
     }
-  }, [dispatch, isInitialized, data]);
+  }, [dispatch, isInitialized, allProducts.data]);
 
-  // Get product list for selection - use memoized getter to prevent empty product list
-  const products = (data && 'data' in data && Array.isArray(data.data)) ? data.data as Product[] : [];
+  // Get available categories for filter dropdown
+  const availableCategories = [
+    { id: 'all', name: 'All Categories' },
+    ...categoryOptions.map(cat => ({ id: cat.value, name: cat.label }))
+  ];
+
+  // Filter products based on search term and selected category
+  const filteredProducts = allProducts.data.filter(product => {
+    const matchesSearch = !searchTerm || 
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.brand.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesCategory = selectedCategory === 'all' || 
+      product.category.toLowerCase() === selectedCategory.toLowerCase();
+    
+    return matchesSearch && matchesCategory;
+  });
+  
+  // Load more products
+  const handleLoadMore = () => {
+    if (allProducts.hasMore && !allProducts.loading) {
+      loadMoreProducts({
+        currentData: allProducts.data,
+        limit: 20,
+        search: searchTerm || undefined
+      });
+    }
+  };
   
   // If products list becomes empty but we thought we were initialized, reset initialization flag
   useEffect(() => {
-    if (isInitialized && products.length === 0 && !loading && !selectedProductId) {
+    if (isInitialized && allProducts.data.length === 0 && !allProducts.loading && !selectedProductId) {
       setIsInitialized(false);
     }
-  }, [isInitialized, products.length, loading, selectedProductId]);
-  
-  const filteredProducts = products.filter((product) =>
-    product?.name?.toLowerCase().includes(searchTerm?.toLowerCase() || '')
-  );
+  }, [isInitialized, allProducts.data.length, allProducts.loading, selectedProductId]);
 
   // Fetch product details when a product is selected
   useEffect(() => {
@@ -229,7 +258,7 @@ const UpdateProductPage = () => {
           
           // Set preview images
           const imageUrls = product.images.map((img: string) => 
-            img.startsWith('http') ? img : `${import.meta.env.VITE_API_URL}/images/${img}`
+            img.startsWith('http') ? img : `http://localhost:5000/images/${img}`
           );
           setPreviewImages(imageUrls);
           
@@ -573,7 +602,7 @@ const handleInputChange = (
             const formData = new FormData();
             formData.append('images', file);
 
-            const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/upload`, formData);
+            const response = await axios.post(`http://localhost:5000/api/upload`, formData);
             const fileNames = response.data.fileNames;
             return fileNames && fileNames.length > 0 ? fileNames[0] : null;
           };
@@ -627,7 +656,7 @@ const handleInputChange = (
   if (!isInitialized || (loading && !selectedProductId)) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
         <span className="ml-2">Loading products...</span>
       </div>
     );
@@ -654,7 +683,8 @@ const handleInputChange = (
           </div>
           <p className="text-gray-600 mb-6">Select a product you want to update from the list below.</p>
           
-          <div className="mb-6">
+          <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Search Input */}
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-5 w-5 text-gray-400" />
@@ -662,13 +692,53 @@ const handleInputChange = (
               <input
                 type="text"
                 placeholder="Search products..."
-                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+            
+            {/* Category Filter */}
+            <div className="relative">
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+              >
+                <option value="all">All Categories</option>
+                {availableCategories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </motion.div>
+
+        {/* Results Counter */}
+        <div className="mb-4 flex justify-between items-center">
+          <p className="text-gray-600">
+            Showing {filteredProducts.length} of {allProducts.total} products
+            {searchTerm && <span className="ml-1">for "{searchTerm}"</span>}
+            {selectedCategory !== 'all' && (
+              <span className="ml-1">
+                in {availableCategories.find(cat => cat.id === selectedCategory)?.name}
+              </span>
+            )}
+          </p>
+          {(searchTerm || selectedCategory !== 'all') && (
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setSelectedCategory('all');
+              }}
+              className="text-primary-600 hover:text-primary-800 text-sm font-medium"
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProducts.length > 0 ? (
@@ -680,13 +750,14 @@ const handleInputChange = (
                 exit={{ opacity: 0, scale: 0.9 }}
                 className="bg-white rounded-lg shadow-lg overflow-hidden"
               >
+
                 <div className="relative h-48">
                   <img
                     src={
                       product.images && product.images.length > 0
                         ? product.images[0].startsWith('http')
                           ? product.images[0]
-                          : `${import.meta.env.VITE_API_URL}/images/${product.images[0]}`
+                          : `http://localhost:5000/images/${product.images[0]}`
                         : '/placeholder.svg'
                     }
                     alt={product.name}
@@ -701,12 +772,12 @@ const handleInputChange = (
                   <h3 className="text-lg font-semibold text-gray-800 mb-2">{product.name}</h3>
                   <p className="text-gray-600 mb-2">Category: {product.category}</p>
                   <p className="text-gray-600 mb-2">Brand: {product.brand}</p>
-                  <p className="text-teal-600 font-bold mb-4">${Number(product.price).toFixed(2)}</p>
+                  <p className="text-primary-600 font-bold mb-4">${Number(product.price).toFixed(2)}</p>
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => handleProductSelect(product._id)}
-                    className="w-full px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all duration-300 flex items-center justify-center"
+                    className="w-full px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all duration-300 flex items-center justify-center"
                   >
                     <Edit className="h-5 w-5 mr-2" />
                     Edit Product
@@ -749,9 +820,9 @@ const handleInputChange = (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6 p-4 bg-teal-50 border border-teal-200 rounded-lg text-teal-700 flex items-center"
+          className="mb-6 p-4 bg-primary-50 border border-primary-200 rounded-lg text-primary-700 flex items-center"
         >
-          <Check className="w-5 h-5 mr-2 text-teal-500" />
+          <Check className="w-5 h-5 mr-2 text-primary-500" />
           <span>
             Product successfully updated!
           </span>
@@ -760,7 +831,7 @@ const handleInputChange = (
 
       {loading ? (
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-8">
@@ -787,12 +858,12 @@ const handleInputChange = (
                   name="name"
                   value={productForm.name}
                   onChange={handleInputChange}
-                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                    formErrors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+                    formErrors.name ? 'border-error-500 bg-error-50' : 'border-gray-300'
                   }`}
                   placeholder="Enter product name"
                 />
-                {formErrors.name && <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>}
+                {formErrors.name && <p className="mt-1 text-sm text-error-600">{formErrors.name}</p>}
               </motion.div>
 
               {/* Brand */}
@@ -806,13 +877,13 @@ const handleInputChange = (
                   name="brand"
                   value={productForm.brand}
                   onChange={handleInputChange}
-                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                    formErrors.brand ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+                    formErrors.brand ? 'border-error-500 bg-error-50' : 'border-gray-300'
                   }`}
                   placeholder="Enter brand name"
                 />
                 {formErrors.brand && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.brand}</p>
+                  <p className="mt-1 text-sm text-error-600">{formErrors.brand}</p>
                 )}
               </motion.div>              {/* Category - Read Only */}
               <motion.div variants={fadeInUp}>
@@ -845,14 +916,14 @@ const handleInputChange = (
                     onChange={handleInputChange}
                     min="0"
                     step="0.01"
-                    className={`w-full p-3 pl-8 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                      formErrors.price ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    className={`w-full p-3 pl-8 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+                      formErrors.price ? 'border-error-500 bg-error-50' : 'border-gray-300'
                     }`}
                     placeholder="0.00"
                   />
                 </div>
                 {formErrors.price && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.price}</p>
+                  <p className="mt-1 text-sm text-error-600">{formErrors.price}</p>
                 )}
               </motion.div>
 
@@ -870,13 +941,13 @@ const handleInputChange = (
                   value={productForm.description}
                   onChange={handleInputChange}
                   rows={4}
-                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                    formErrors.description ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+                    formErrors.description ? 'border-error-500 bg-error-50' : 'border-gray-300'
                   }`}
                   placeholder="Enter detailed product description"
                 ></textarea>
                 {formErrors.description && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.description}</p>
+                  <p className="mt-1 text-sm text-error-600">{formErrors.description}</p>
                 )}
               </motion.div>
             </div>
@@ -898,9 +969,9 @@ const handleInputChange = (
               <div
                 className={`border-2 border-dashed rounded-lg p-8 text-center ${
                   dragActive
-                    ? 'border-teal-500 bg-teal-50'
-                    : 'border-gray-300 hover:border-teal-400'
-                } ${formErrors.images ? 'bg-red-50 border-red-300' : ''}`}
+                    ? 'border-primary-500 bg-primary-50'
+                    : 'border-gray-300 hover:border-primary-400'
+                } ${formErrors.images ? 'bg-error-50 border-error-300' : ''}`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
@@ -920,12 +991,12 @@ const handleInputChange = (
                 />
                 <label
                   htmlFor="image-upload"
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 cursor-pointer"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 cursor-pointer"
                 >
                   Browse Files
                 </label>
                 {formErrors.images && (
-                  <p className="mt-3 text-sm text-red-600">{formErrors.images}</p>
+                  <p className="mt-3 text-sm text-error-600">{formErrors.images}</p>
                 )}
               </div>
 
@@ -944,7 +1015,7 @@ const handleInputChange = (
                       <button
                         type="button"
                         onClick={() => removeImage(index)}
-                        className="absolute top-2 right-2 p-1 bg-red-500 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-2 right-2 p-1 bg-error-500 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -968,7 +1039,7 @@ const handleInputChange = (
 
             <div className="p-6 space-y-6">
               {formErrors.specifications && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                <div className="p-3 bg-error-50 border border-error-200 rounded-lg text-error-600 text-sm">
                   {formErrors.specifications}
                 </div>
               )}
@@ -983,7 +1054,7 @@ const handleInputChange = (
                         value={spec.name}
                         onChange={(e) => handleSpecChange(index, 'name', e.target.value)}
                         placeholder="Specification name"
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-warning-500 focus:border-warning-500"
                       />
                     </div>
                     <div className="flex-1">
@@ -992,13 +1063,13 @@ const handleInputChange = (
                         value={spec.value}
                         onChange={(e) => handleSpecChange(index, 'value', e.target.value)}
                         placeholder="Specification value"
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-warning-500 focus:border-warning-500"
                       />
                     </div>
                     <button
                       type="button"
                       onClick={() => removeSpecification(index)}
-                      className="p-3 text-red-500 hover:text-red-700 focus:outline-none"
+                      className="p-3 text-error-500 hover:text-error-700 focus:outline-none"
                     >
                       <X className="w-5 h-5" />
                     </button>
@@ -1010,7 +1081,7 @@ const handleInputChange = (
               <button
                 type="button"
                 onClick={addSpecification}
-                className="inline-flex items-center px-4 py-2 border border-amber-300 text-sm font-medium rounded-md text-amber-700 bg-amber-50 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
+                className="inline-flex items-center px-4 py-2 border border-warning-300 text-sm font-medium rounded-md text-warning-700 bg-warning-50 hover:bg-warning-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-warning-500"
               >
                 <Plus className="w-5 h-5 mr-2" />
                 Add Specification
@@ -1031,7 +1102,7 @@ const handleInputChange = (
 
             <div className="p-6 space-y-6">
               {formErrors.features && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                <div className="p-3 bg-error-50 border border-error-200 rounded-lg text-error-600 text-sm">
                   {formErrors.features}
                 </div>
               )}
@@ -1046,13 +1117,13 @@ const handleInputChange = (
                         value={feature}
                         onChange={(e) => handleFeatureChange(index, e.target.value)}
                         placeholder="Enter a key feature"
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                       />
                     </div>
                     <button
                       type="button"
                       onClick={() => removeFeature(index)}
-                      className="p-3 text-red-500 hover:text-red-700 focus:outline-none"
+                      className="p-3 text-error-500 hover:text-error-700 focus:outline-none"
                       disabled={productForm.features?.length === 1}
                     >
                       <X className="w-5 h-5" />
@@ -1065,7 +1136,7 @@ const handleInputChange = (
               <button
                 type="button"
                 onClick={addFeature}
-                className="inline-flex items-center px-4 py-2 border border-teal-300 text-sm font-medium rounded-md text-teal-700 bg-teal-50 hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
+                className="inline-flex items-center px-4 py-2 border border-primary-300 text-sm font-medium rounded-md text-primary-700 bg-primary-50 hover:bg-primary-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
               >
                 <Plus className="w-5 h-5 mr-2" />
                 Add Feature
@@ -1078,13 +1149,13 @@ const handleInputChange = (
             <button
               type="button"
               onClick={handleResetSelection}
-              className="px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
+              className="px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
+              className="px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
               disabled={loading}
             >
               {loading ? (

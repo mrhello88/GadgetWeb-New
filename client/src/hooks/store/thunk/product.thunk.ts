@@ -26,7 +26,7 @@ type categoryData = {
 export const AddProduct = createAsyncThunk(
   'product/AddProduct',
   async (productData: productData, thunkApi) => {
-    console.log(productData)
+    
     try {
       const response = await axiosInstance.post('/graphql', {
         query: `
@@ -69,7 +69,7 @@ export const AddProduct = createAsyncThunk(
         `,
         variables: productData,
       });
-      console.log(response)
+
       if (response?.data.data.addProduct.statusCode === 201) {
         return response?.data.data.addProduct || 'add Product in successfully';
       }
@@ -85,101 +85,7 @@ export const AddProduct = createAsyncThunk(
   }
 );
 
-export const GetProductsByCategory = createAsyncThunk(
-  'product/GetProductsByCategory',
-  async (_, thunkApi) => {
-    try {
-      const response = await axiosInstance.post('/graphql', {
-        query: `
-          query GetProductsByCategory {
-            getProductsByCategory {
-              success
-              message
-              data {
-                _id
-                category
-                description
-                image
-                products {
-                  _id
-                  name
-                  description
-                  price
-                  category
-                  brand
-                  specifications {
-                    name
-                    value
-                  }
-                  features
-                  images
-                  rating
-                  reviewCount
-                  reviews {
-                    _id
-                    userId
-                    userName
-                    userAvatar
-                    rating
-                    title
-                    text
-                    likes
-                    dislikes
-                    replies {
-                      _id
-                      userId
-                      userName
-                      text
-                      createdAt
-                    }
-                    isEdited
-                    createdAt
-                    updatedAt
-                    likesCount
-                    dislikesCount
-                    repliesCount
-                  }
-                  relatedProducts {
-                    _id
-                    name
-                    description
-                    price
-                    category
-                    brand
-                    specifications {
-                      name
-                      value
-                    }
-                    features
-                    images
-                  }
-                }
-              }
-              statusCode
-            }
-          }
-        `,
-      });
 
-      const result = response?.data?.data?.getProductsByCategory;
-      
-      if (!result) {
-        return thunkApi.rejectWithValue('No data received from server');
-      }
-
-      if (result.statusCode === 200 && result.success) {
-        return result;
-      }
-
-      return thunkApi.rejectWithValue(result.message || 'Failed to fetch products');
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        return thunkApi.rejectWithValue(error.message);
-      }
-      return thunkApi.rejectWithValue('An unknown error occurred');
-    }
-  }
-);
 
 export const AddCategory = createAsyncThunk(
   'product/AddCategory',
@@ -283,12 +189,20 @@ export const DeleteProduct = createAsyncThunk(
 
 export const GetAllProducts = createAsyncThunk(
   'product/GetAllProducts',
-  async (_, thunkApi) => {
+  async (params: {
+    limit?: number;
+    offset?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    search?: string;
+  } = {}, thunkApi) => {
     try {
+      const { limit = 20, offset = 0, sortBy = 'createdAt', sortOrder = 'desc', search } = params;
+      
       const response = await axiosInstance.post('/graphql', {
         query: `
-          query GetAllProducts {
-            getAllProducts {
+          query GetAllProducts($limit: Int, $offset: Int, $sortBy: String, $sortOrder: String, $search: String) {
+            getAllProducts(limit: $limit, offset: $offset, sortBy: $sortBy, sortOrder: $sortOrder, search: $search) {
               success
               message
               data {
@@ -304,11 +218,16 @@ export const GetAllProducts = createAsyncThunk(
                 }
                 features
                 images
+                rating
+                reviewCount
               }
+              total
+              hasMore
               statusCode
             }
           }
         `,
+        variables: { limit, offset, sortBy, sortOrder, search },
       });
 
       if (response?.data.data.getAllProducts.statusCode === 200) {
@@ -322,6 +241,192 @@ export const GetAllProducts = createAsyncThunk(
       if (error instanceof Error) {
         return thunkApi.rejectWithValue(error.message);
       }
+    }
+  }
+);
+
+export const GetProductsByCategory = createAsyncThunk(
+  'product/GetProductsByCategory',
+  async (params: {
+    category: string;
+    limit?: number;
+    offset?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    filters?: {
+      brand?: string;
+      minPrice?: number;
+      maxPrice?: number;
+      minRating?: number;
+      search?: string;
+      priceRange?: string;
+      specifications?: Array<{name: string; value: string}>;
+    };
+  }, thunkApi) => {
+    try {
+      // Safety check for params
+      if (!params) {
+        return thunkApi.rejectWithValue('Parameters are required for GetProductsByCategory');
+      }
+      
+      const { category, limit = 20, offset = 0, sortBy = 'createdAt', sortOrder = 'desc', filters } = params;
+      
+      // Safety check for required category parameter
+      if (!category) {
+        return thunkApi.rejectWithValue('Category parameter is required');
+      }
+      
+      const response = await axiosInstance.post('/graphql', {
+        query: `
+          query GetProductsByCategory($category: String!, $limit: Int, $offset: Int, $sortBy: String, $sortOrder: String, $filters: ProductFiltersInput) {
+            getProductsByCategory(category: $category, limit: $limit, offset: $offset, sortBy: $sortBy, sortOrder: $sortOrder, filters: $filters) {
+              success
+              message
+              data {
+                _id
+                name
+                description
+                price
+                category
+                brand
+                specifications {
+                  name
+                  value
+                }
+                features
+                images
+                rating
+                reviewCount
+                reviews {
+                  _id
+                  userId
+                  userName
+                  userAvatar
+                  rating
+                  title
+                  text
+                  likes
+                  dislikes
+                  replies {
+                    _id
+                    userId
+                    userName
+                    text
+                    createdAt
+                  }
+                  isEdited
+                  createdAt
+                  updatedAt
+                  likesCount
+                  dislikesCount
+                  repliesCount
+                }
+                relatedProducts {
+                  _id
+                  name
+                  description
+                  price
+                  category
+                  brand
+                  specifications {
+                    name
+                    value
+                  }
+                  features
+                  images
+                }
+              }
+              total
+              hasMore
+              statusCode
+            }
+          }
+        `,
+        variables: { category, limit, offset, sortBy, sortOrder, filters },
+      });
+
+      const result = response?.data?.data?.getProductsByCategory;
+      
+      if (!result) {
+        return thunkApi.rejectWithValue('No data received from server');
+      }
+
+      if (result.statusCode === 200 && result.success) {
+        return result;
+      }
+
+      return thunkApi.rejectWithValue(result.message || 'Failed to fetch products');
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        return thunkApi.rejectWithValue(error.message);
+      }
+      return thunkApi.rejectWithValue('An unknown error occurred');
+    }
+  }
+);
+
+export const GetCategories = createAsyncThunk(
+  'product/GetCategories',
+  async (params: {
+    limit?: number;
+    offset?: number;
+  } = {}, thunkApi) => {
+    try {
+      const { limit = 10, offset = 0 } = params;
+      
+      const response = await axiosInstance.post('/graphql', {
+        query: `
+          query GetCategories($limit: Int, $offset: Int) {
+            getCategories(limit: $limit, offset: $offset) {
+              success
+              message
+              data {
+                _id
+                category
+                description
+                image
+                products {
+                  _id
+                  name
+                  description
+                  price
+                  category
+                  brand
+                  specifications {
+                    name
+                    value
+                  }
+                  features
+                  images
+                  rating
+                  reviewCount
+                }
+              }
+              total
+              hasMore
+              statusCode
+            }
+          }
+        `,
+        variables: { limit, offset },
+      });
+
+      const result = response?.data?.data?.getCategories;
+      
+      if (!result) {
+        return thunkApi.rejectWithValue('No data received from server');
+      }
+
+      if (result.statusCode === 200 && result.success) {
+        return result;
+      }
+
+      return thunkApi.rejectWithValue(result.message || 'Failed to fetch categories');
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        return thunkApi.rejectWithValue(error.message);
+      }
+      return thunkApi.rejectWithValue('An unknown error occurred');
     }
   }
 );
@@ -455,6 +560,8 @@ export const GetProductById = createAsyncThunk(
                 name
                 description
                 price
+                rating
+                reviewCount
                 category
                 brand
                 specifications {
@@ -463,6 +570,24 @@ export const GetProductById = createAsyncThunk(
                 }
                 features
                 images
+                reviews {
+                  _id
+                  rating
+                  title
+                  text
+                  userName
+                  userAvatar
+                  createdAt
+                }
+                relatedProducts {
+                  _id
+                  name
+                  description
+                  price
+                  category
+                  brand
+                  images
+                }
               }
               statusCode
             }

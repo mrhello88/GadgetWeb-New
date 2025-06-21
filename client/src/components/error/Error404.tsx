@@ -6,8 +6,8 @@ const Error404 = () => {
 
   const floatingShapes = [
     { color: 'bg-pink-400', size: 'w-16 h-16', initialY: -20 },
-    { color: 'bg-teal-400', size: 'w-20 h-20', initialY: 20 },
-    { color: 'bg-yellow-400', size: 'w-12 h-12', initialY: 0 },
+    { color: 'bg-primary-400', size: 'w-20 h-20', initialY: 20 },
+    { color: 'bg-warning-400', size: 'w-12 h-12', initialY: 0 },
   ];
 
   return (

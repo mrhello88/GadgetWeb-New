@@ -3,38 +3,182 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Primary Brand Colors */
+    --color-primary-50: 240 253 250;   /* #f0fdfa */
+    --color-primary-100: 204 251 241;  /* #ccfbf1 */
+    --color-primary-200: 153 246 228;  /* #99f6e4 */
+    --color-primary-300: 94 234 212;   /* #5eead4 */
+    --color-primary-400: 45 212 191;   /* #2dd4bf */
+    --color-primary-500: 20 184 166;   /* #14b8a6 - Main brand color */
+    --color-primary-600: 13 148 136;   /* #0d9488 */
+    --color-primary-700: 15 118 110;   /* #0f766e */
+    --color-primary-800: 17 94 89;     /* #115e59 */
+    --color-primary-900: 19 78 74;     /* #134e4a */
+    
+    /* Success Colors */
+    --color-success-50: 240 253 244;   /* #f0fdf4 */
+    --color-success-100: 220 252 231;  /* #dcfce7 */
+    --color-success-500: 34 197 94;    /* #22c55e */
+    --color-success-600: 22 163 74;    /* #16a34a */
+    
+    /* Error Colors */
+    --color-error-50: 254 242 242;     /* #fef2f2 */
+    --color-error-100: 254 226 226;    /* #fee2e2 */
+    --color-error-500: 239 68 68;      /* #ef4444 */
+    --color-error-600: 220 38 38;      /* #dc2626 */
+    
+    /* Warning Colors */
+    --color-warning-50: 255 251 235;   /* #fffbeb */
+    --color-warning-100: 254 243 199;  /* #fef3c7 */
+    --color-warning-500: 245 158 11;   /* #f59e0b */
+    --color-warning-600: 217 119 6;    /* #d97706 */
+    
+    /* Info Colors */
+    --color-info-50: 239 246 255;      /* #eff6ff */
+    --color-info-100: 219 234 254;     /* #dbeafe */
+    --color-info-500: 59 130 246;      /* #3b82f6 */
+    --color-info-600: 37 99 235;       /* #2563eb */
+    
+    /* Neutral Colors */
+    --color-gray-50: 248 250 252;      /* #f8fafc */
+    --color-gray-100: 241 245 249;     /* #f1f5f9 */
+    --color-gray-200: 226 232 240;     /* #e2e8f0 */
+    --color-gray-300: 203 213 225;     /* #cbd5e1 */
+    --color-gray-400: 148 163 184;     /* #94a3b8 */
+    --color-gray-500: 100 116 139;     /* #64748b */
+    --color-gray-600: 71 85 105;       /* #475569 */
+    --color-gray-700: 51 65 85;        /* #334155 */
+    --color-gray-800: 30 41 59;        /* #1e293b */
+    --color-gray-900: 15 23 42;        /* #0f172a */
+    
+    /* Shadows */
+    --shadow-brand: 0 4px 14px 0 rgba(20, 184, 166, 0.15);
+    --shadow-brand-lg: 0 10px 25px -3px rgba(20, 184, 166, 0.1), 0 4px 6px -2px rgba(20, 184, 166, 0.05);
+  }
+  
   html {
     scroll-behavior: smooth;
+    /* Ensure consistent font rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   
   body {
     overflow-y: auto;
     overflow-x: hidden;
+    /* Ensure consistent background */
+    background-color: rgb(var(--color-gray-50));
+    color: rgb(var(--color-gray-900));
   }
   
   :focus {
     outline: none;
   }
+  
+  /* Ensure consistent focus states */
+  .focus-primary:focus {
+    outline: 2px solid rgb(var(--color-primary-500));
+    outline-offset: 2px;
+  }
+  
+  /* Consistent button styles */
+  .btn-primary {
+    background-color: rgb(var(--color-primary-500));
+    color: white;
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .btn-primary:hover {
+    background-color: rgb(var(--color-primary-600));
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-brand);
+  }
+  
+  .btn-primary:active {
+    background-color: rgb(var(--color-primary-700));
+    transform: translateY(0);
+  }
+  
+  /* Consistent input styles */
+  .input-primary {
+    border: 1px solid rgb(var(--color-gray-300));
+    background-color: white;
+    color: rgb(var(--color-gray-900));
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .input-primary:focus {
+    border-color: rgb(var(--color-primary-500));
+    box-shadow: 0 0 0 3px rgba(var(--color-primary-500), 0.1);
+  }
+  
+  .input-error {
+    border-color: rgb(var(--color-error-500));
+    background-color: rgb(var(--color-error-50));
+  }
+  
+  .input-error:focus {
+    border-color: rgb(var(--color-error-500));
+    box-shadow: 0 0 0 3px rgba(var(--color-error-500), 0.1);
+  }
 }
 
-/* Custom scrollbar styles */
+/* Custom scrollbar styles with consistent colors */
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: rgb(var(--color-gray-100));
   border-radius: 10px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #c5c5c5;
+  background: rgb(var(--color-gray-400));
   border-radius: 10px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #a3a3a3;
+  background: rgb(var(--color-gray-500));
 }
 
 /* Apply custom scrollbar to all overflow elements */
 .overflow-auto, .overflow-y-auto {
   @apply custom-scrollbar;
+}
+
+@layer components {
+  /* Consistent loading spinner */
+  .spinner-primary {
+    @apply animate-spin rounded-full border-2 border-primary-200 border-t-primary-500;
+  }
+  
+  /* Consistent card styles */
+  .card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200;
+  }
+  
+  .card-hover {
+    @apply transition-all duration-200 hover:shadow-brand hover:-translate-y-1;
+  }
+  
+  /* Consistent badge styles */
+  .badge-primary {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800;
+  }
+  
+  .badge-success {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-800;
+  }
+  
+  .badge-error {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-error-100 text-error-800;
+  }
+  
+  .badge-warning {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-100 text-warning-800;
+  }
+  
+  .badge-info {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-info-100 text-info-800;
+  }
 }
 

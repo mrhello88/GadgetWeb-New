@@ -202,7 +202,6 @@ export const getReviewsByProduct = createAsyncThunk(
 export const getReviewsByUser = createAsyncThunk(
   'review/getReviewsByUser',
   async ({ userId, limit = 10, offset = 0 }: { userId: string; limit?: number; offset?: number }, thunkApi) => {
-    console.log(userId)
     try {
       const response = await axiosInstance.post('/graphql', {
         query: `
@@ -247,7 +246,7 @@ export const getReviewsByUser = createAsyncThunk(
           offset
         },
       });
-      console.log(response)
+
       if (response?.data.data.getReviewsByUser.statusCode === 200) {
         return response?.data.data.getReviewsByUser;
       }
@@ -694,6 +693,74 @@ export const getAllReviews = createAsyncThunk(
         return thunkApi.rejectWithValue(error.message);
       }
       return thunkApi.rejectWithValue('An unknown error occurred');
+    }
+  }
+);
+
+export const getReviewsForProduct = createAsyncThunk(
+  'reviews/getForProduct',
+  async (productId: string, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post('/graphql', {
+        query: `
+          query GetReviewsForProduct($productId: ID!) {
+            getReviewsForProduct(productId: $productId) {
+              _id
+              rating
+              title
+              text
+              author {
+                _id
+                name
+              }
+              product {
+                _id
+                name
+              }
+              createdAt
+              updatedAt
+            }
+          }
+        `,
+        variables: { productId },
+      });
+      return response.data.data.getReviewsForProduct;
+    } catch (error: any) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
+export const getUserReviews = createAsyncThunk(
+  'reviews/getUserReviews',
+  async (userId: string, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post('/graphql', {
+        query: `
+          query GetUserReviews($userId: ID!) {
+            getUserReviews(userId: $userId) {
+              _id
+              rating
+              title
+              text
+              author {
+                _id
+                name
+              }
+              product {
+                _id
+                name
+              }
+              createdAt
+              updatedAt
+            }
+          }
+        `,
+        variables: { userId },
+      });
+      return response.data.data.getUserReviews;
+    } catch (error: any) {
+      return rejectWithValue(error.response.data);
     }
   }
 ); 

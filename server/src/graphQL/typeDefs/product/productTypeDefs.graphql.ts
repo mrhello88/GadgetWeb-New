@@ -76,6 +76,8 @@ export const productTypeDefs = gql`
     success: Boolean!
     message: String!
     data: [Product!]!
+    total: Int
+    hasMore: Boolean
     token: String
     statusCode: Int!
   }
@@ -90,8 +92,32 @@ export const productTypeDefs = gql`
 
   type Query {
     getProduct(_id: ID!): productDataResponse!
-    getAllProducts: productsDataResponse!
-    getCategories: [Category]
+    getAllProducts(
+      limit: Int = 20
+      offset: Int = 0
+      sortBy: String = "createdAt"
+      sortOrder: String = "desc"
+      search: String
+    ): productsDataResponse!
+    getProductsByCategory(
+      category: String!
+      limit: Int = 20
+      offset: Int = 0
+      sortBy: String = "createdAt"
+      sortOrder: String = "desc"
+      filters: ProductFiltersInput
+    ): productsDataResponse!
+    getProductsByFilters(
+      filters: ProductFiltersInput!
+      limit: Int = 20
+      offset: Int = 0
+      sortBy: String = "createdAt"
+      sortOrder: String = "desc"
+    ): productsDataResponse!
+    getCategories(
+      limit: Int = 10
+      offset: Int = 0
+    ): CategoriesDataResponse!
     getCategory(id: ID!): Category
   }
 
@@ -128,7 +154,32 @@ export const productTypeDefs = gql`
     data: Category
   }
 
+  type CategoriesDataResponse {
+    success: Boolean!
+    message: String!
+    data: [Category!]!
+    total: Int
+    hasMore: Boolean
+    statusCode: Int!
+  }
+
   input SpecificationInput {
+    name: String!
+    value: String!
+  }
+
+  input ProductFiltersInput {
+    category: String
+    brand: String
+    minPrice: Float
+    maxPrice: Float
+    minRating: Float
+    search: String
+    priceRange: String
+    specifications: [SpecificationFilterInput]
+  }
+
+  input SpecificationFilterInput {
     name: String!
     value: String!
   }

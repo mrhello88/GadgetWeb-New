@@ -1,24 +1,29 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../../hooks/store/store';
-import { GetProductsByCategory } from '../../../hooks/store/thunk/product.thunk';
+import { GetCategories } from '../../../hooks/store/thunk/product.thunk';
 import { getReviewsByProduct, deleteReview, updateReview } from '../../../hooks/store/thunk/review.thunk';
 import { Star, Trash2, ChevronDown, ChevronUp, Search, X, Eye, EyeOff } from 'lucide-react';
 import type { productByCategoryResponse, productByCategory, Product } from '../../../hooks/store/slice/product.slices';
 
 // Helper function to get the profile image URL with proper fallback
 const getProfileImageUrl = (avatarPath: string | undefined): string => {
-  if (!avatarPath) return `${import.meta.env.VITE_API_URL}/profileImages/avatar.png`;
+  if (!avatarPath) return `http://localhost:5000/profileImages/avatar.png`;
   if (avatarPath.startsWith('http')) return avatarPath;
-  return `${import.meta.env.VITE_API_URL}/profileImages/${avatarPath}`;
+  return `http://localhost:5000/profileImages/${avatarPath}`;
 };
 
 // Format date
 const formatDate = (dateString: string): string => {
-  const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
-  return new Date(dateString).toLocaleDateString('en-US', options);
+    if (!dateString) return 'Invalid Date';
+    const date = new Date(Number(dateString));
+    if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+    }
+    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+    return date.toLocaleDateString('en-US', options);
 };
 
 const DeleteReviewsComponent = () => {
@@ -42,7 +47,14 @@ const DeleteReviewsComponent = () => {
     const fetchData = async () => {
       try {
         // Always fetch data on component mount to ensure we have fresh data
-        await dispatch(GetProductsByCategory()).unwrap();
+        const result = await dispatch(GetCategories({ 
+          limit: 50, 
+          offset: 0 
+        })).unwrap();
+        if (result.success && result.data) {
+          // Set categories directly since GetCategories returns categories, not products by category
+          setCategories(result.data);
+        }
       } catch (error) {
         console.error('Failed to fetch products by category:', error);
         toast.error('Failed to load categories and products');
@@ -120,7 +132,7 @@ const DeleteReviewsComponent = () => {
           })).unwrap();
           
           if (result.success && result.data) {
-            console.log('Reviews loaded:', result.data);
+        
             setReviews(result.data);
           } else {
             setReviews([]);
@@ -255,7 +267,7 @@ const DeleteReviewsComponent = () => {
   if (productLoading && !productData) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
       </div>
     );
   }
@@ -284,7 +296,7 @@ const DeleteReviewsComponent = () => {
                     onClick={() => handleCategoryClick(category._id)}
                     className={`w-full flex items-center justify-between p-2 rounded-md transition-colors ${
                       selectedCategory === category._id
-                        ? 'bg-teal-100 text-teal-700'
+                        ? 'bg-primary-100 text-primary-700'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
@@ -305,7 +317,7 @@ const DeleteReviewsComponent = () => {
                           onClick={() => handleProductClick(product._id)}
                           className={`w-full text-left p-2 rounded-md transition-colors ${
                             selectedProduct === product._id
-                              ? 'bg-teal-500 text-white'
+                              ? 'bg-primary-500 text-white'
                               : 'hover:bg-gray-100 text-gray-700'
                           }`}
                         >
@@ -342,7 +354,7 @@ const DeleteReviewsComponent = () => {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Search reviews..."
-                    className="pl-10 pr-10 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="pl-10 pr-10 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   />
                   {searchTerm && (
                     <button
@@ -360,7 +372,7 @@ const DeleteReviewsComponent = () => {
                     onClick={() => setStatusFilter('all')}
                     className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                       statusFilter === 'all'
-                        ? 'bg-teal-500 text-white'
+                        ? 'bg-primary-500 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
@@ -370,7 +382,7 @@ const DeleteReviewsComponent = () => {
                     onClick={() => setStatusFilter('active')}
                     className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                       statusFilter === 'active'
-                        ? 'bg-green-500 text-white'
+                        ? 'bg-success-500 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
@@ -399,7 +411,7 @@ const DeleteReviewsComponent = () => {
               {reviewsLoading ? (
                 <div className="flex justify-center items-center h-40">
                   <div className="flex flex-col items-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-teal-500 mb-2"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500 mb-2"></div>
                     <p className="text-gray-500">Loading reviews...</p>
                   </div>
                 </div>
@@ -422,7 +434,7 @@ const DeleteReviewsComponent = () => {
                             className="w-10 h-10 rounded-full mr-3 object-cover border border-gray-200"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
-                              target.src = `${import.meta.env.VITE_API_URL}/profileImages/avatar.png`;
+                              target.src = `http://localhost:5000/profileImages/avatar.png`;
                             }}
                           />
                           <div>
@@ -442,7 +454,7 @@ const DeleteReviewsComponent = () => {
                                 <Star
                                   key={i}
                                   className={`h-4 w-4 ${
-                                    i < review.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                                    i < review.rating ? 'text-warning-500 fill-current' : 'text-gray-300'
                                   }`}
                                 />
                               ))}
@@ -456,7 +468,7 @@ const DeleteReviewsComponent = () => {
                             className={`p-2 rounded-full ${
                               review.status === 'disabled'
                                 ? 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                                : 'bg-green-100 text-green-600 hover:bg-green-200'
+                                : 'bg-success-100 text-success-600 hover:bg-success-200'
                             }`}
                             onClick={() => handleToggleStatus(
                               review._id, 
@@ -475,7 +487,7 @@ const DeleteReviewsComponent = () => {
                           
                           {/* Delete button */}
                           <button
-                            className="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200"
+                            className="p-2 rounded-full bg-error-100 text-error-600 hover:bg-error-200"
                             onClick={() => setShowDeleteConfirm(review._id)}
                           >
                             <Trash2 className="h-5 w-5" />
@@ -513,7 +525,7 @@ const DeleteReviewsComponent = () => {
                               Cancel
                             </button>
                             <button
-                              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                              className="px-4 py-2 bg-error-500 text-white rounded-lg hover:bg-error-600 transition-colors"
                               onClick={() => handleDeleteReview(review._id)}
                             >
                               Delete
@@ -528,7 +540,7 @@ const DeleteReviewsComponent = () => {
                 <div className="text-center py-10 text-gray-500">
                   <p>No reviews found matching your filters</p>
                   <button 
-                    className="mt-2 text-teal-500 hover:underline"
+                    className="mt-2 text-primary-500 hover:underline"
                     onClick={() => {
                       setSearchTerm('');
                       setStatusFilter('all');

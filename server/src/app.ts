@@ -37,13 +37,15 @@ const ApolloServer = async () => {
       }),
     );
 
-    app.use('/api/upload', upload.array('images', 5), (req, res) => {
-      const files = req.files as Express.Multer.File[];
+    app.post('/api/upload', upload.array('images', 5), (req, res) => {
+      const files = (req.files as Express.Multer.File[]) || [];
+      if (!files.length) {
+        return res.status(400).json({ error: 'No files uploaded' });
+      }
       const fileNames = files.map((file) => file.filename);
-
       res.json({ fileNames });
     });
-    app.use('/api/category', CategoryUpload.single('image'), (req, res) => {
+    app.post('/api/category', CategoryUpload.single('image'), (req, res) => {
       if (req.file) {
         const { filename } = req.file;
         res.json({ filename });
@@ -53,7 +55,7 @@ const ApolloServer = async () => {
     });
     
     // Add route for profile image upload
-    app.use('/api/profile/image', ProfileUpload.single('image'), (req, res) => {
+    app.post('/api/profile/image', ProfileUpload.single('image'), (req, res) => {
       if (req.file) {
         const { filename } = req.file;
         res.json({ filename });

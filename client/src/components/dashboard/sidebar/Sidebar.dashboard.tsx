@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import type React from "react"
 import { useState } from "react"
@@ -104,15 +104,15 @@ export const Sidebar: React.FC = () => {
 
   // Add this helper function at the top of your component
   const getProfileImageUrl = (imagePath: string | undefined): string => {
-    if (!imagePath) return `${import.meta.env.VITE_API_URL}/profileImages/avatar.png`;
+    if (!imagePath) return `http://localhost:5000/profileImages/avatar.png`;
     if (imagePath.startsWith('http')) return imagePath;
-    return `${import.meta.env.VITE_API_URL}/profileImages/${imagePath}`;
+    return `http://localhost:5000/profileImages/${imagePath}`;
   };
 
   // Then in your component, add this to access the current user data
   const profileImage = userData?.data?.profileImage 
     ? getProfileImageUrl(userData.data.profileImage)
-    : `${import.meta.env.VITE_API_URL}/profileImages/avatar.png`;
+    : `http://localhost:5000/profileImages/avatar.png`;
 
   return (
     <motion.div
@@ -125,7 +125,7 @@ export const Sidebar: React.FC = () => {
     >
       {/* Toggle button */}
       <motion.button
-        className="absolute -right-3 top-10 bg-teal-500 rounded-full p-1 shadow-md z-10"
+        className="absolute -right-3 top-10 bg-primary-500 rounded-full p-1 shadow-md z-10"
         onClick={() => setIsExpanded(!isExpanded)}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
@@ -143,7 +143,7 @@ export const Sidebar: React.FC = () => {
         transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" }}
       />
       <motion.div
-        className="absolute bottom-20 left-4 h-6 w-6 bg-yellow-500/10"
+        className="absolute bottom-20 left-4 h-6 w-6 bg-warning-500/10"
         initial={{ scale: 0 }}
         animate={{ scale: [1, 1.2, 1] }}
         transition={{ duration: 2.5, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" }}
@@ -209,7 +209,7 @@ export const Sidebar: React.FC = () => {
                 )}
                 {isExpanded && hoveredItem === item.path && !isItemActive && (
                   <motion.div
-                    className="absolute left-0 top-0 bottom-0 w-1 bg-teal-500 rounded-full"
+                    className="absolute left-0 top-0 bottom-0 w-1 bg-primary-500 rounded-full"
                     layoutId="sidebar-indicator"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -243,7 +243,7 @@ export const Sidebar: React.FC = () => {
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  target.src = `${import.meta.env.VITE_API_URL}/profileImages/avatar.png`;
+                  target.src = `http://localhost:5000/profileImages/avatar.png`;
                 }}
               />
             </motion.div>
@@ -259,4 +259,5 @@ export const Sidebar: React.FC = () => {
     </motion.div>
   )
 }
+
 

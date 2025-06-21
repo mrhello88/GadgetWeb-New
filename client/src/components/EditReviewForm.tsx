@@ -45,17 +45,14 @@ const EditReviewForm = ({ reviewId, initialData, onUpdate, onCancel }: EditRevie
     }
     
     try {
-      console.log("Updating review:", { reviewId, rating, title, text });
-      
+    
       const result = await dispatch(updateReview({
         reviewId,
         rating,
         title: title.trim(),
         text: text.trim()
       })).unwrap();
-      
-      console.log("Review update result:", result);
-      
+  
       if (result.success) {
         setSubmitMessage('Review updated successfully!');
         toast.success('Review updated successfully!');
@@ -102,7 +99,7 @@ const EditReviewForm = ({ reviewId, initialData, onUpdate, onCancel }: EditRevie
                 <Star 
                   className={`h-8 w-8 ${
                     (hoverRating !== null ? star <= hoverRating : star <= rating)
-                      ? 'text-yellow-500 fill-current'
+                      ? 'text-warning-500 fill-current'
                       : 'text-gray-300'
                   }`}
                 />
@@ -123,7 +120,7 @@ const EditReviewForm = ({ reviewId, initialData, onUpdate, onCancel }: EditRevie
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-300 focus:border-teal-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-500"
             placeholder="Summarize your experience"
             maxLength={100}
             required
@@ -138,7 +135,7 @@ const EditReviewForm = ({ reviewId, initialData, onUpdate, onCancel }: EditRevie
             id="review-text"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-300 focus:border-teal-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-500"
             placeholder="Share your thoughts about this product"
             rows={5}
             maxLength={1000}
@@ -151,7 +148,7 @@ const EditReviewForm = ({ reviewId, initialData, onUpdate, onCancel }: EditRevie
         
         {submitMessage && (
           <div className={`mb-4 p-3 rounded-lg ${
-            submitMessage.includes('success') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+            submitMessage.includes('success') ? 'bg-success-50 text-success-700' : 'bg-error-50 text-error-700'
           }`}>
             {submitMessage}
           </div>
@@ -160,7 +157,7 @@ const EditReviewForm = ({ reviewId, initialData, onUpdate, onCancel }: EditRevie
         <div className="flex justify-end space-x-3">
           <motion.button
             type="button"
-            className="px-6 py-2 bg-teal-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition-colors"
+            className="px-6 py-2 bg-primary-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition-colors"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={onCancel}
@@ -170,7 +167,7 @@ const EditReviewForm = ({ reviewId, initialData, onUpdate, onCancel }: EditRevie
           
           <motion.button
             type="submit"
-            className="px-6 py-2 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors"
+            className="px-6 py-2 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             disabled={loading}

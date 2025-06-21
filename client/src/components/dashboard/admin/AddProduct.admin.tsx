@@ -1,4 +1,4 @@
-// AddProductPage.tsx
+﻿// AddProductPage.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -21,7 +21,7 @@ import {
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
-import { AddProduct, GetProductsByCategory } from '../../../hooks/store/thunk/product.thunk';
+import { AddProduct, GetCategories } from '../../../hooks/store/thunk/product.thunk';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../../hooks/store/store';
 
@@ -166,15 +166,23 @@ const AddProductPage = () => {
   // Redux hooks for categories
   const dispatch = useDispatch<AppDispatch>();
   const productState = useSelector((state: RootState) => state.product);
-  const categories =
-    (productState.data &&
-      'data' in productState.data &&
-      Array.isArray(productState.data.data)
-      ? productState.data.data.map((cat) => ({
-          value: cat.category,
-          label: cat.category,
-        }))
-      : []) || [];
+  const categories = (() => {
+    if (productState.categories && productState.categories.data) {
+      // Use the categories from GetCategories
+      const categoryMap = new Map();
+      productState.categories.data.forEach((cat, index) => {
+        if (!categoryMap.has(cat.category)) {
+          categoryMap.set(cat.category, {
+            value: cat.category,
+            label: cat.category,
+            id: `${cat.category}-${index}` // Unique ID to prevent key conflicts
+          });
+        }
+      });
+      return Array.from(categoryMap.values());
+    }
+    return [];
+  })();
 
   // Form state
   const [product, setProduct] = useState<Product>({
@@ -196,7 +204,10 @@ const AddProductPage = () => {
 
   // Fetch categories on mount
   useEffect(() => {
-    dispatch(GetProductsByCategory());
+    dispatch(GetCategories({ 
+      limit: 50, 
+      offset: 0 
+    }));
   }, [dispatch]);
 
   // Initialize specifications when category changes
@@ -465,7 +476,7 @@ const AddProductPage = () => {
           const formData = new FormData();
           formData.append('images', file);
 
-          const response = await axios.post('http://localhost:5000/api/upload', formData);
+          const response = await axios.post(`http://localhost:5000/api/upload`, formData);
 
           const fileNames = response.data.fileNames;
           return fileNames && fileNames.length > 0 ? fileNames[0] : null;
@@ -527,16 +538,16 @@ const AddProductPage = () => {
 
       {/* Background Shapes */}
       <div className="fixed inset-0 overflow-hidden -z-10 pointer-events-none">
-        <TriangleDecoration className="absolute top-0 right-0 w-64 h-64 text-teal-100 opacity-40 transform -translate-y-32 translate-x-16" />
+        <TriangleDecoration className="absolute top-0 right-0 w-64 h-64 text-primary-100 opacity-40 transform -translate-y-32 translate-x-16" />
         <CircleDecoration className="absolute bottom-0 left-0 w-96 h-96 text-pink-100 opacity-30 transform translate-y-24 -translate-x-24" />
-        <SquareDecoration className="absolute top-1/3 left-1/4 w-32 h-32 text-amber-100 opacity-30 transform -rotate-15" />
-        <HexagonDecoration className="absolute top-3/4 right-1/4 w-48 h-48 text-teal-100 opacity-20" />
+        <SquareDecoration className="absolute top-1/3 left-1/4 w-32 h-32 text-warning-100 opacity-30 transform -rotate-15" />
+        <HexagonDecoration className="absolute top-3/4 right-1/4 w-48 h-48 text-primary-100 opacity-20" />
 
         <motion.div
           initial="initial"
           animate="animate"
           variants={rotateAnimation}
-          className="absolute top-1/4 left-1/2 w-72 h-72 text-amber-100 opacity-30"
+          className="absolute top-1/4 left-1/2 w-72 h-72 text-warning-100 opacity-30"
         >
           <HexagonDecoration className="w-full h-full" />
         </motion.div>
@@ -545,7 +556,7 @@ const AddProductPage = () => {
           initial="initial"
           animate="animate"
           variants={rotateAnimation}
-          className="absolute top-2/3 left-1/3 w-48 h-48 text-teal-100 opacity-20"
+          className="absolute top-2/3 left-1/3 w-48 h-48 text-primary-100 opacity-20"
         >
           <CircleDecoration className="w-full h-full" />
         </motion.div>
@@ -570,9 +581,9 @@ const AddProductPage = () => {
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-4 bg-teal-50 border border-teal-200 rounded-lg text-teal-700 flex items-center"
+            className="mb-6 p-4 bg-primary-50 border border-primary-200 rounded-lg text-primary-700 flex items-center"
           >
-            <Check className="w-5 h-5 mr-2 text-teal-500" />
+            <Check className="w-5 h-5 mr-2 text-primary-500" />
             <span>
               Product successfully added with ID: <strong>{generateProductId()}</strong>
             </span>
@@ -604,12 +615,12 @@ const AddProductPage = () => {
                   name="name"
                   value={product.name}
                   onChange={handleInputChange}
-                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                    formErrors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+                    formErrors.name ? 'border-error-500 bg-error-50' : 'border-gray-300'
                   }`}
                   placeholder="Enter product name"
                 />
-                {formErrors.name && <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>}
+                {formErrors.name && <p className="mt-1 text-sm text-error-600">{formErrors.name}</p>}
               </motion.div>
 
               {/* Brand */}
@@ -623,13 +634,13 @@ const AddProductPage = () => {
                   name="brand"
                   value={product.brand}
                   onChange={handleInputChange}
-                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                    formErrors.brand ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+                    formErrors.brand ? 'border-error-500 bg-error-50' : 'border-gray-300'
                   }`}
                   placeholder="Enter brand name"
                 />
                 {formErrors.brand && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.brand}</p>
+                  <p className="mt-1 text-sm text-error-600">{formErrors.brand}</p>
                 )}
               </motion.div>
 
@@ -644,20 +655,20 @@ const AddProductPage = () => {
                     name="category"
                     value={product.category}
                     onChange={handleInputChange}
-                    className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none bg-white ${
-                      formErrors.category ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none bg-white ${
+                      formErrors.category ? 'border-error-500 bg-error-50' : 'border-gray-300'
                     }`}
                   >
                     <option value="">Select a category</option>
                     {categories.map((option) => (
-                      <option key={option.value} value={option.value}>
+                      <option key={option.id || option.value} value={option.value}>
                         {option.label}
                       </option>
                     ))}
                   </select>
                 </div>
                 {formErrors.category && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.category}</p>
+                  <p className="mt-1 text-sm text-error-600">{formErrors.category}</p>
                 )}
               </motion.div>
 
@@ -679,14 +690,14 @@ const AddProductPage = () => {
                       onChange={handleInputChange}
                       min="0"
                       step="0.01"
-                      className={`w-full p-3 pl-8 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                        formErrors.price ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                      className={`w-full p-3 pl-8 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+                        formErrors.price ? 'border-error-500 bg-error-50' : 'border-gray-300'
                       }`}
                       placeholder="0.00"
                     />
                   </div>
                   {formErrors.price && (
-                    <p className="mt-1 text-sm text-red-600">{formErrors.price}</p>
+                    <p className="mt-1 text-sm text-error-600">{formErrors.price}</p>
                   )}
                 </div>
               </motion.div>
@@ -705,13 +716,13 @@ const AddProductPage = () => {
                   value={product.description}
                   onChange={handleInputChange}
                   rows={4}
-                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                    formErrors.description ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+                    formErrors.description ? 'border-error-500 bg-error-50' : 'border-gray-300'
                   }`}
                   placeholder="Enter detailed product description"
                 ></textarea>
                 {formErrors.description && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.description}</p>
+                  <p className="mt-1 text-sm text-error-600">{formErrors.description}</p>
                 )}
               </motion.div>
             </div>
@@ -733,9 +744,9 @@ const AddProductPage = () => {
               <div
                 className={`border-2 border-dashed rounded-lg p-8 text-center ${
                   dragActive
-                    ? 'border-teal-500 bg-teal-50'
-                    : 'border-gray-300 hover:border-teal-400'
-                } ${formErrors.images ? 'bg-red-50 border-red-300' : ''}`}
+                    ? 'border-primary-500 bg-primary-50'
+                    : 'border-gray-300 hover:border-primary-400'
+                } ${formErrors.images ? 'bg-error-50 border-error-300' : ''}`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
@@ -755,12 +766,12 @@ const AddProductPage = () => {
                 />
                 <label
                   htmlFor="image-upload"
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 cursor-pointer"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 cursor-pointer"
                 >
                   Browse Files
                 </label>
                 {formErrors.images && (
-                  <p className="mt-3 text-sm text-red-600">{formErrors.images}</p>
+                  <p className="mt-3 text-sm text-error-600">{formErrors.images}</p>
                 )}
               </div>
 
@@ -779,7 +790,7 @@ const AddProductPage = () => {
                       <button
                         type="button"
                         onClick={() => removeImage(index)}
-                        className="absolute top-2 right-2 p-1 bg-red-500 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-2 right-2 p-1 bg-error-500 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -803,7 +814,7 @@ const AddProductPage = () => {
 
             <div className="p-6 space-y-6">
               {formErrors.specifications && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                <div className="p-3 bg-error-50 border border-error-200 rounded-lg text-error-600 text-sm">
                   {formErrors.specifications}
                 </div>
               )}
@@ -818,7 +829,7 @@ const AddProductPage = () => {
                         value={spec.name}
                         onChange={(e) => handleSpecChange(index, 'name', e.target.value)}
                         placeholder="Specification name"
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-warning-500 focus:border-warning-500"
                       />
                     </div>
                     <div className="flex-1">
@@ -827,13 +838,13 @@ const AddProductPage = () => {
                         value={spec.value}
                         onChange={(e) => handleSpecChange(index, 'value', e.target.value)}
                         placeholder="Specification value"
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-warning-500 focus:border-warning-500"
                       />
                     </div>
                     <button
                       type="button"
                       onClick={() => removeSpecification(index)}
-                      className="p-3 text-red-500 hover:text-red-700 focus:outline-none"
+                      className="p-3 text-error-500 hover:text-error-700 focus:outline-none"
                     >
                       <X className="w-5 h-5" />
                     </button>
@@ -845,7 +856,7 @@ const AddProductPage = () => {
               <button
                 type="button"
                 onClick={addSpecification}
-                className="inline-flex items-center px-4 py-2 border border-amber-300 text-sm font-medium rounded-md text-amber-700 bg-amber-50 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
+                className="inline-flex items-center px-4 py-2 border border-warning-300 text-sm font-medium rounded-md text-warning-700 bg-warning-50 hover:bg-warning-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-warning-500"
               >
                 <Plus className="w-5 h-5 mr-2" />
                 Add Specification
@@ -866,7 +877,7 @@ const AddProductPage = () => {
 
             <div className="p-6 space-y-6">
               {formErrors.features && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                <div className="p-3 bg-error-50 border border-error-200 rounded-lg text-error-600 text-sm">
                   {formErrors.features}
                 </div>
               )}
@@ -881,13 +892,13 @@ const AddProductPage = () => {
                         value={feature}
                         onChange={(e) => handleFeatureChange(index, e.target.value)}
                         placeholder="Enter a key feature"
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                       />
                     </div>
                     <button
                       type="button"
                       onClick={() => removeFeature(index)}
-                      className="p-3 text-red-500 hover:text-red-700 focus:outline-none"
+                      className="p-3 text-error-500 hover:text-error-700 focus:outline-none"
                       disabled={product.features?.length === 1}
                     >
                       <X className="w-5 h-5" />
@@ -900,7 +911,7 @@ const AddProductPage = () => {
               <button
                 type="button"
                 onClick={addFeature}
-                className="inline-flex items-center px-4 py-2 border border-teal-300 text-sm font-medium rounded-md text-teal-700 bg-teal-50 hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
+                className="inline-flex items-center px-4 py-2 border border-primary-300 text-sm font-medium rounded-md text-primary-700 bg-primary-50 hover:bg-primary-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
               >
                 <Plus className="w-5 h-5 mr-2" />
                 Add Feature
@@ -913,13 +924,13 @@ const AddProductPage = () => {
             <button
               type="button"
               onClick={() => navigate('/admin/products')}
-              className="px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
+              className="px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
+              className="px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             >
               <Save className="w-5 h-5 mr-2 inline-block" />
               Save Product
@@ -932,3 +943,4 @@ const AddProductPage = () => {
 };
 
 export default AddProductPage;
+

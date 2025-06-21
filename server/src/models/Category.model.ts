@@ -39,4 +39,4 @@ const categorySchema = new Schema<ICategory>(
   }
 );
 
-export const CategoryModel = model<ICategory>('CategoryProduct', categorySchema);
+export const CategoryModel = model<ICategory>('Category', categorySchema);
