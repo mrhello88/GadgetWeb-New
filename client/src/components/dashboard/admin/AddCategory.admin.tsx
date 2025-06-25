@@ -165,7 +165,11 @@ const AddCategoryAdminPage = () => {
         if (error.code === 'ECONNABORTED') {
           handleError('Upload timeout. Please try again with a smaller image.', { showToast: true });
         } else if (error.response?.status === 413) {
-          handleError('Image is too large. Please select a smaller image.', { showToast: true });
+          handleError('Image size is too large. Please select an image smaller than 5MB.', { showToast: true });
+        } else if (error.response?.data?.error === 'FILE_TOO_LARGE') {
+          handleError('Image size is too large. Please select an image smaller than 5MB.', { showToast: true });
+        } else if (error.response?.data?.message) {
+          handleError(error.response.data.message, { showToast: true });
         } else {
           handleError(error.response?.data?.message || 'Failed to upload image', { showToast: true });
         }

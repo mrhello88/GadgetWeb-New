@@ -183,21 +183,32 @@ const ProductCompare = () => {
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [showSuccessMessage, setShowSuccessMessage] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
+  const [hasAttemptedLoad, setHasAttemptedLoad] = useState<boolean>(false);
   const navigate = useNavigate();
 
-  // Load categories data if it's not already in the store
+  // Load categories data if it's not already in the store - Fixed to prevent continuous fetching
   useEffect(() => {
-    if (categoriesData.length === 0 && !loading) {
-      dispatch(GetCategories({ limit: 20, offset: 0 })).catch((error) => {
-        
-      });
+    const loadCategories = async () => {
+      if (hasAttemptedLoad) return; // Prevent multiple calls
+      
+      try {
+        setHasAttemptedLoad(true);
+        await dispatch(GetCategories({ limit: 20, offset: 0 }));
+      } catch (error) {
+        console.error('Failed to load categories:', error);
+      }
+    };
+
+    // Only load if we haven't attempted to load yet and not currently loading
+    if (!hasAttemptedLoad && categoriesData.length === 0 && !loading) {
+      loadCategories();
     }
-  }, [categoriesData.length, loading, dispatch]);
+  }, [hasAttemptedLoad, categoriesData.length, loading, dispatch]);
 
   // Log any errors
   useEffect(() => {
     if (error) {
-      
+      console.error('Categories error:', error);
     }
   }, [error]);
 
@@ -232,7 +243,7 @@ const ProductCompare = () => {
         }
       }
     }
-  }, [id, allProducts]);
+  }, [id, allProducts, selectedProducts]);
 
   // Update available products when the category changes
   useEffect(() => {
@@ -308,7 +319,7 @@ const ProductCompare = () => {
     return Array.from(allSpecs);
   };
 
-  // Best product recommendation logic (remains unchanged)
+  // Best product recommendation logic
   const getBestProduct = (): { product: Product; reasons: string[]; score: number } | null => {
     if (selectedProducts.length < 2) return null;
 
@@ -378,11 +389,11 @@ const ProductCompare = () => {
     });
 
     // Find the product with the highest score
-    const bestProduct = productScores.reduce((best, current) => 
-      current.score > best.score ? current : best
+    const bestProduct = productScores.reduce((prev, current) => 
+      prev.score > current.score ? prev : current
     );
 
-    return bestProduct.score > 0 ? bestProduct : null;
+    return bestProduct;
   };
 
   // Capitalize category names for display
@@ -581,7 +592,7 @@ const ProductCompare = () => {
                         <img
                           src={
                             product.images && product.images[0]
-                              ? `http://localhost:5000/images/${product.images[0]}`
+                              ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/images/${product.images[0]}`
                               : '/placeholder.svg'
                           }
                           alt={product.name}
@@ -639,7 +650,7 @@ const ProductCompare = () => {
                         <img
                           src={
                             product.images && product.images[0]
-                              ? `http://localhost:5000/images/${product.images[0]}`
+                              ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/images/${product.images[0]}`
                               : '/placeholder.svg'
                           }
                           alt={product.name}
@@ -651,7 +662,7 @@ const ProductCompare = () => {
                         />
                       </div>
                       <div className="ml-3">
-                        <h3 className="font-medium">{product.name}</h3>
+                        <h3 className="font-medium text-gray-900">{product.name}</h3>
                         <p className="text-sm text-gray-500">{product.brand}</p>
                       </div>
                     </div>
@@ -767,7 +778,7 @@ const ProductCompare = () => {
                         <img
                           src={
                             bestProduct.product.images && bestProduct.product.images[0]
-                              ? `http://localhost:5000/images/${bestProduct.product.images[0]}`
+                              ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/images/${bestProduct.product.images[0]}`
                               : '/placeholder.svg'
                           }
                           alt={bestProduct.product.name}

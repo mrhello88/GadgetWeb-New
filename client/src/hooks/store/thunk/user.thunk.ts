@@ -266,6 +266,16 @@ export const uploadProfileImage = createAsyncThunk(
   'user/uploadProfileImage',
   async (imageFile: File, thunkApi) => {
     try {
+      // Client-side validation before upload
+      if (imageFile.size > 2 * 1024 * 1024) { // 2MB limit
+        return thunkApi.rejectWithValue('Image size is too large. Please select an image smaller than 2MB.');
+      }
+
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(imageFile.type)) {
+        return thunkApi.rejectWithValue('Invalid file type. Please select a JPEG, PNG, GIF, or WebP image.');
+      }
+
       const formData = new FormData();
       formData.append('image', imageFile);
 
@@ -273,6 +283,7 @@ export const uploadProfileImage = createAsyncThunk(
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        timeout: 30000, // 30 seconds timeout
       });
 
       if (response.status === 200) {
@@ -280,10 +291,28 @@ export const uploadProfileImage = createAsyncThunk(
       }
 
       return thunkApi.rejectWithValue('Failed to upload profile image');
-    } catch (error: unknown) {
+    } catch (error: any) {
+      if (error.code === 'ECONNABORTED') {
+        return thunkApi.rejectWithValue('Upload timeout. Please try again with a smaller image.');
+      }
+      
+      if (error.response?.status === 413) {
+        return thunkApi.rejectWithValue('Image size is too large. Please select an image smaller than 2MB.');
+      }
+      
+      if (error.response?.data?.error === 'FILE_TOO_LARGE') {
+        return thunkApi.rejectWithValue('Image size is too large. Please select an image smaller than 2MB.');
+      }
+      
+      if (error.response?.data?.message) {
+        return thunkApi.rejectWithValue(error.response.data.message);
+      }
+      
       if (error instanceof Error) {
         return thunkApi.rejectWithValue(error.message);
       }
+      
+      return thunkApi.rejectWithValue('Failed to upload profile image. Please try again.');
     }
   }
 );

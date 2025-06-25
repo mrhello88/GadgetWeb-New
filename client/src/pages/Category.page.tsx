@@ -102,38 +102,47 @@ const CategoryPage: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const categoryRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [categoryInView, setCategoryInView] = useState<boolean[]>([]);
+  const [hasInitiallyFetched, setHasInitiallyFetched] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const { data, loading, categories: categoriesFromStore } = useSelector((state: RootState) => state.product);
   const { isLoggedIn } = useSelector((state: RootState) => state.user);
 
   const dispatch = useAppDispatch();
 
-  // Load categories with products on mount
+  // Auto-fetch categories on component mount
   useEffect(() => {
     const loadCategoriesWithProducts = async () => {
       try {
-        // Load all categories with their products
+        setFetchError(null);
         await dispatch(GetCategories({
           limit: 20,
           offset: 0
         }));
+        setHasInitiallyFetched(true);
       } catch (error) {
         console.error('Failed to load categories:', error);
+        setFetchError('Failed to load categories. Please try again.');
+        setHasInitiallyFetched(true);
       }
     };
 
-    // Only load if we don't have categories already
-    if (categories.length === 0 && !categoriesFromStore.loading) {
+    // Always fetch on mount if we haven't fetched yet
+    if (!hasInitiallyFetched && !loading && !categoriesFromStore.loading) {
       loadCategoriesWithProducts();
     }
-  }, [dispatch, categories.length, categoriesFromStore.loading]);
+  }, [dispatch, hasInitiallyFetched, loading, categoriesFromStore.loading]);
 
   // Get categories from Redux categories state
   useEffect(() => {
     if (categoriesFromStore.data && categoriesFromStore.data.length > 0) {
       setCategories(categoriesFromStore.data);
+      setFetchError(null);
+    } else if (hasInitiallyFetched && categoriesFromStore.data && categoriesFromStore.data.length === 0) {
+      // Data was fetched but empty - this means no categories in database
+      setCategories([]);
     }
-  }, [categoriesFromStore.data]);
+  }, [categoriesFromStore.data, hasInitiallyFetched]);
 
   // Update categoryInView and animation controls when categories change
   useEffect(() => {
@@ -193,25 +202,48 @@ const CategoryPage: React.FC = () => {
     }
   };
 
-  if (loading || categoriesFromStore.loading) {
+  // Handle retry loading
+  const handleRetryLoading = async () => {
+    try {
+      setFetchError(null);
+      await dispatch(GetCategories({ limit: 20, offset: 0 }));
+    } catch (error) {
+      console.error('Failed to retry loading categories:', error);
+      setFetchError('Failed to load categories. Please try again.');
+    }
+  };
+
+  // Show loading spinner while initially loading
+  if ((loading || categoriesFromStore.loading) && !hasInitiallyFetched) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary-500"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading categories...</p>
+        </div>
       </div>
     );
   }
 
-  if (!categories || categories.length === 0) {
+  // Show retry button only if there was an error OR if we successfully fetched but no categories exist in database
+  if (hasInitiallyFetched && (fetchError || (!categories || categories.length === 0))) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">No Categories Found</h2>
-          <p className="text-gray-600">Please check back later for available categories.</p>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+            {fetchError ? 'Error Loading Categories' : 'No Categories Found'}
+          </h2>
+          <p className="text-gray-600 mb-6">
+            {fetchError 
+              ? fetchError 
+              : 'No product categories are available in the database yet. Please check back later or contact support.'}
+          </p>
           <button 
-            onClick={() => dispatch(GetCategories({ limit: 20, offset: 0 }))}
-            className="mt-4 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+            onClick={handleRetryLoading}
+            disabled={loading || categoriesFromStore.loading}
+            className="px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Retry Loading Categories
+            {loading || categoriesFromStore.loading ? 'Loading...' : 'Retry Loading Categories'}
           </button>
         </div>
       </div>
@@ -582,72 +614,6 @@ const CategoryPage: React.FC = () => {
             </div>
           </section>
         ))}
-
-        {/* CTA Section */}
-        {/* <section className="py-16 bg-gradient-to-r from-teal to-teal-900 relative">
-          <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto text-center">
-              <motion.h2
-                className="text-3xl md:text-4xl font-bold mb-6 text-white"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7 }}
-              >
-                Can't Find What You're Looking For?
-              </motion.h2>
-              <motion.p
-                className="text-xl text-white/90 mb-8"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.7, delay: 0.2 }}
-              >
-                We're constantly adding new products and categories to our comparison platform. Let us know what you'd
-                like to see next!
-              </motion.p>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.4 }}
-              >
-                <Link
-                  to="/contact"
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-white text-primary-500 font-medium rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  Request a Product
-                  <motion.span
-                    initial={{ x: 0 }}
-                    whileHover={{ x: 5 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                  >
-                    <ExternalLink className="h-5 w-5" />
-                  </motion.span>
-                </Link>
-              </motion.div>
-            </div>
-          </div>
-
-          decorative divs
-          <motion.div
-            className="absolute bottom-10 left-10 w-20 h-20 text-white/10"
-            animate={{
-              rotate: [0, 180],
-              scale: [1, 1.2, 1],
-            }}
-            transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" }}
-          >
-            <CircleDecoration className="w-full h-full" />
-          </motion.div>
-          <motion.div
-            className="absolute top-10 right-10 w-16 h-16 text-white/10"
-            animate={{
-              rotate: [180, 0],
-              scale: [1, 1.1, 1],
-            }}
-            transition={{ duration: 7, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" }}
-          >
-            <SquareDecoration className="w-full h-full" />
-          </motion.div>
-        </section> */}
       </div>
 
       <style>{`
@@ -660,5 +626,3 @@ const CategoryPage: React.FC = () => {
 };
 
 export default CategoryPage;
-
-

@@ -11,7 +11,7 @@ export const authTypeDefs = gql`
 
   type User {
     _id: ID
-    name: String!
+    name: String! 
     email: String!
     isAdmin: Boolean!
     profileImage: String 

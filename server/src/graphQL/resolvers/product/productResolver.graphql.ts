@@ -712,14 +712,37 @@ export const productResolver = {
           };
         }
 
+        // Find and delete all products associated with this category
+        const productsToDelete = await ProductModel.find({ category: category.category });
+        
+        // Delete images for all products in this category
+        for (const product of productsToDelete) {
+          if (product.images && product.images.length > 0) {
+            product.images.forEach(image => {
+              // Only delete if it's a local image (not an external URL)
+              if (!image.startsWith('http')) {
+                const imagePath = path.join(__dirname, '../../../public/images', image);
+                if (fs.existsSync(imagePath)) {
+                  fs.unlinkSync(imagePath);
+                  console.log(`Deleted product image: ${image}`);
+                }
+              }
+            });
+          }
+          
+          // Delete reviews for each product
+          await ReviewModel.deleteMany({ productId: product._id });
+        }
+
         // Delete all products associated with this category
         await ProductModel.deleteMany({ category: category.category });
 
         // Delete the category image if it exists
-        if (category.image) {
-          const imagePath = path.join(__dirname, '../../uploads/categories', category.image);
+        if (category.image && !category.image.startsWith('http')) {
+          const imagePath = path.join(__dirname, '../../../public/categoryImage', category.image);
           if (fs.existsSync(imagePath)) {
             fs.unlinkSync(imagePath);
+            console.log(`Deleted category image: ${category.image}`);
           }
         }
 
@@ -728,7 +751,7 @@ export const productResolver = {
 
         return {
           success: true,
-          message: 'Category and associated products deleted successfully',
+          message: 'Category, associated products, and all related images deleted successfully',
           data: category
         };
       } catch (error) {

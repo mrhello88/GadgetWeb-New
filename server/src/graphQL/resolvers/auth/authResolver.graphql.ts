@@ -84,12 +84,47 @@ export const authResolvers = {
       },
     ) => {
       try {
-        const user = await UserModel.findOne({ email });
+        // Enhanced email uniqueness check - check for ANY user with this email (admin or regular user)
+        const existingUser = await UserModel.findOne({ email });
 
-        if (user) {
-          return { success: false, data: null, message: 'User exist already!', statusCode: 409 };
+        if (existingUser) {
+          // Provide specific error messages based on the existing user type
+          if (existingUser.isAdmin && !isAdmin) {
+            return { 
+              success: false, 
+              data: null, 
+              message: 'This email is already registered as an admin account. Please use a different email.', 
+              statusCode: 409 
+            };
+          } else if (!existingUser.isAdmin && isAdmin) {
+            return { 
+              success: false, 
+              data: null, 
+              message: 'This email is already registered as a user account. Please use a different email.', 
+              statusCode: 409 
+            };
+          } else {
+            return { 
+              success: false, 
+              data: null, 
+              message: 'Email already exists. Please use a different email address.', 
+              statusCode: 409 
+            };
+          }
         }
 
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          return {
+            success: false,
+            data: null,
+            message: 'Please provide a valid email address.',
+            statusCode: 400,
+          };
+        }
+
+        // Validate password match
         if (!(password === confirmPassword)) {
           return {
             success: false,
@@ -98,6 +133,18 @@ export const authResolvers = {
             statusCode: 400,
           };
         }
+
+        // Validate password strength
+        if (password.length < 8) {
+          return {
+            success: false,
+            data: null,
+            message: 'Password must be at least 8 characters long.',
+            statusCode: 400,
+          };
+        }
+
+        // Hash password and create crypto token
         const hashedPassword = await UserModel.hashPassword(password);
         const token = crypto.randomBytes(32).toString('hex');
         const cryptoTokenUser = await CryptoTokenModel.create({
@@ -112,15 +159,37 @@ export const authResolvers = {
           return {
             success: false,
             data: null,
-            message: 'Email not Send to you for Verification, please try again!',
+            message: 'Email not sent for verification. Please try again!',
             statusCode: 500,
           };
         }
 
         await sendEmail(cryptoTokenUser.email, cryptoTokenUser.token);
-        return { message: 'Email sent successfully', success: true, data: null, statusCode: 200 };
+        return { 
+          message: 'Email sent successfully. Please check your inbox to verify your account.', 
+          success: true, 
+          data: null, 
+          statusCode: 200 
+        };
       } catch (error: unknown) {
-        return { success: false, data: null, message: `Error creating users: ${error}` };
+        console.error('Registration error:', error);
+        
+        // Handle MongoDB duplicate key error
+        if (error instanceof Error && error.message.includes('E11000')) {
+          return { 
+            success: false, 
+            data: null, 
+            message: 'Email already exists. Please use a different email address.', 
+            statusCode: 409 
+          };
+        }
+        
+        return { 
+          success: false, 
+          data: null, 
+          message: `Error creating user: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          statusCode: 500
+        };
       }
     },
 

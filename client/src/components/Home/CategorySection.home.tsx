@@ -63,19 +63,29 @@ export default function CategorySection() {
   const dispatch = useDispatch<AppDispatch>();
   const { data } = useSelector((state: RootState) => state.product);
   const [categories, setCategories] = useState<productByCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
+        setLoading(true);
+        setError(null);
         const result = await dispatch(GetCategories({ 
           limit: 3, 
           offset: 0 
         })).unwrap();
         if (result.success && result.data) {
           setCategories(result.data);
+        } else {
+          setCategories([]);
         }
       } catch (error) {
         console.error('Failed to fetch categories:', error);
+        setCategories([]);
+        setError('Failed to load categories');
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -137,20 +147,58 @@ export default function CategorySection() {
           </motion.p>
         </motion.div>
 
-        {categories.length > 0 ? (
-        <div className="grid gap-6 sm:gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {categories.map((category, index) => (
-            <ProductCard
-                key={category._id}
-                title={category.category}
-              description={category.description}
-              image={category.image}
-                icon={<BarChart3 className="h-4 w-4 sm:h-5 sm:w-5" />}
-                link={category.category}
-              delay={0.5 + index * 0.2}
-            />
-          ))}
-        </div>
+        {loading ? (
+          <motion.div
+            className="text-center py-12"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+              <p className="text-gray-600 text-lg">Loading categories...</p>
+            </div>
+          </motion.div>
+        ) : error ? (
+          <motion.div
+            className="text-center py-12"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            <p className="text-gray-600 text-lg">Unable to load categories. Please try again later.</p>
+          </motion.div>
+        ) : categories.length > 0 ? (
+          <>
+            <div className="grid gap-6 sm:gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {categories.map((category, index) => (
+                <ProductCard
+                    key={category._id}
+                    title={category.category}
+                  description={category.description}
+                  image={category.image}
+                    icon={<BarChart3 className="h-4 w-4 sm:h-5 sm:w-5" />}
+                    link={category.category}
+                  delay={0.5 + index * 0.2}
+                />
+              ))}
+            </div>
+            
+            {/* Only show "View All Categories" link when categories exist */}
+            <motion.div
+              className="mt-8 sm:mt-12 text-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.2 }}
+            >
+              <Link
+                to="/categories"
+                className="inline-flex items-center gap-2 rounded-lg border border-primary-600 bg-white px-4 sm:px-6 py-2 sm:py-3 text-sm font-medium text-primary-600 transition-colors hover:bg-primary-50"
+              >
+                View All Categories <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
+              </Link>
+            </motion.div>
+          </>
         ) : (
           <motion.div
             className="text-center py-12"
@@ -159,22 +207,9 @@ export default function CategorySection() {
             transition={{ delay: 0.5 }}
           >
             <p className="text-gray-600 text-lg">No categories available at the moment.</p>
+            <p className="text-gray-500 text-sm mt-2">Categories will appear here once they are added to the database.</p>
           </motion.div>
         )}
-
-        <motion.div
-          className="mt-8 sm:mt-12 text-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.2 }}
-        >
-          <Link
-            to="/categories"
-            className="inline-flex items-center gap-2 rounded-lg border border-primary-600 bg-white px-4 sm:px-6 py-2 sm:py-3 text-sm font-medium text-primary-600 transition-colors hover:bg-primary-50"
-          >
-            View All Categories <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
-          </Link>
-        </motion.div>
       </div>
     </section>
   );
