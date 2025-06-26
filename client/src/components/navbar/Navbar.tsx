@@ -6,12 +6,12 @@ import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../../hooks/store/store';
 import { logOutUser, isLoggedInUser } from '../../hooks/store/slice/user.slices';
 import { productByCategoryResponse, Product as ReduxProduct } from '../../hooks/store/slice/product.slices';
-import { User, Search } from 'lucide-react';
+import { User, Search, ChevronDown } from 'lucide-react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useProfileLoader } from '../../hooks/useProfileLoader';
 import axios from 'axios';
-import { GetAllProducts } from '../../hooks/store/thunk/product.thunk';
+import { GetAllProducts, GetCategories } from '../../hooks/store/thunk/product.thunk';
 import { jwtDecode } from 'jwt-decode';
 
 interface CategoryData {
@@ -26,16 +26,19 @@ interface CustomJwtPayload {
 const Navbar = () => {
   const [scrollPosition, setScrollPosition] = useState(0);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<ReduxProduct[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const mobileSearchRef = useRef<HTMLDivElement>(null);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
   const [navbarCategories, setNavbarCategories] = useState<CategoryData[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
 
   const dispatch = useDispatch<AppDispatch>();
   const { data: allProducts, loading: productsLoading, error: productsError } = useSelector((state: RootState) => state.product.allProducts);
+  const { data: reduxCategories, loading: reduxCategoriesLoading } = useSelector((state: RootState) => state.product.categories);
   const { isLoggedIn, isAdmin, data: userData } = useSelector((state: RootState) => state.user);
   const navigate = useNavigate();
   const location = useLocation();
@@ -76,8 +79,30 @@ const Navbar = () => {
 
   useEffect(() => {
     const loadNavbarCategories = async () => {
-        try {
-          setCategoriesLoading(true);
+      try {
+        setCategoriesLoading(true);
+        
+        // First try to get categories from Redux store
+        if (reduxCategories && reduxCategories.length > 0) {
+          const formattedCategories = reduxCategories.map(cat => ({
+            _id: cat._id,
+            category: cat.category
+          }));
+          setNavbarCategories(formattedCategories);
+          setCategoriesLoading(false);
+          return;
+        }
+
+        // If Redux store is empty, dispatch action to fetch categories
+        const result = await dispatch(GetCategories({ limit: 50, offset: 0 })).unwrap();
+        if (result.success && result.data) {
+          const formattedCategories = result.data.map(cat => ({
+            _id: cat._id,
+            category: cat.category
+          }));
+          setNavbarCategories(formattedCategories);
+        } else {
+          // Fallback to direct API call if Redux fails
           const response = await axios.post(`http://localhost:5000/graphql`, {
             query: `query GetCategories { getCategories { success data { _id category } } }`
           });
@@ -86,15 +111,27 @@ const Navbar = () => {
           } else {
             setNavbarCategories([]);
           }
-        } catch (error) {
-          console.error('Failed to load navbar categories:', error);
-          setNavbarCategories([]);
-        } finally {
-          setCategoriesLoading(false);
         }
+      } catch (error) {
+        console.error('Failed to load navbar categories:', error);
+        setNavbarCategories([]);
+      } finally {
+        setCategoriesLoading(false);
+      }
     };
+
     loadNavbarCategories();
-  }, []);
+  }, [dispatch, reduxCategories]);
+
+  useEffect(() => {
+    if (reduxCategories && reduxCategories.length > 0) {
+      const formattedCategories = reduxCategories.map(cat => ({
+        _id: cat._id,
+        category: cat.category
+      }));
+      setNavbarCategories(formattedCategories);
+    }
+  }, [reduxCategories]);
 
   useEffect(() => {
     const products: ReduxProduct[] = allProducts || [];
@@ -131,16 +168,25 @@ const Navbar = () => {
   useEffect(() => {
     setShowSearchResults(false);
     setSearchTerm('');
+    setIsCategoryDropdownOpen(false);
   }, [location]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
+      
+      // Close search results
       if (searchRef.current && !searchRef.current.contains(target) && mobileSearchRef.current && !mobileSearchRef.current.contains(target)) {
         setShowSearchResults(false);
         setSearchTerm('');
       }
+      
+      // Close category dropdown
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(target)) {
+        setIsCategoryDropdownOpen(false);
+      }
     };
+    
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
@@ -315,19 +361,41 @@ const Navbar = () => {
                 <Link to="/dashboard" className="block py-2 px-3 text-black rounded md:p-0">Dashboard</Link>
               </li>
             )}
-            <li>
-                <button
-                  id="dropdownNavbarLink"
-                  data-dropdown-toggle="dropdownNavbar"
-                  className="flex items-center justify-between w-full py-2 px-3 text-black rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 md:w-auto"
+            <li className="relative" ref={categoryDropdownRef}>
+              <div className="flex items-center">
+                {/* Category Link - navigates to /categories */}
+                <Link 
+                  to="/categories" 
+                  className="block py-2 px-3 text-black rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0"
                 >
                   Category
-                  <svg className="w-2.5 h-2.5 ms-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
-                    <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 1 4 4 4-4"/>
-                  </svg>
+                </Link>
+                
+                {/* Dropdown Toggle Button - shows dropdown */}
+                <button
+                  onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+                  className="flex items-center justify-center p-1 ml-1 text-black hover:bg-gray-100 md:hover:bg-transparent md:hover:text-primary-700 rounded"
+                  aria-label="Toggle category dropdown"
+                >
+                  <ChevronDown 
+                    className={`w-4 h-4 transition-transform duration-200 ${
+                      isCategoryDropdownOpen ? 'rotate-180' : ''
+                    }`} 
+                  />
                 </button>
-                <div id="dropdownNavbar" className="z-10 hidden font-normal bg-white divide-y divide-gray-100 rounded-lg shadow w-44">
-                    <ul className="py-2 text-sm text-gray-700" aria-labelledby="dropdownLargeButton">
+              </div>
+              
+              {/* Category Dropdown */}
+              <AnimatePresence>
+                {isCategoryDropdownOpen && (
+                  <motion.div
+                    className="absolute top-full left-0 mt-1 w-44 bg-white divide-y divide-gray-100 rounded-lg shadow-lg border border-gray-200 z-50"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ul className="py-2 text-sm text-gray-700">
                       {categoriesLoading ? (
                         <li>
                           <div className="block px-4 py-2 text-gray-500 text-center">
@@ -337,7 +405,13 @@ const Navbar = () => {
                       ) : navbarCategories.length > 0 ? (
                         navbarCategories.map((cat) => (
                           <li key={cat._id}>
-                            <Link to={`/category/${cat.category}`} className="block px-4 py-2 hover:bg-gray-100">{categoryTitles[cat.category]}</Link>
+                            <Link 
+                              to={`/category/${cat.category}`} 
+                              className="block px-4 py-2 hover:bg-gray-100 transition-colors"
+                              onClick={() => setIsCategoryDropdownOpen(false)}
+                            >
+                              {categoryTitles[cat.category]}
+                            </Link>
                           </li>
                         ))
                       ) : (
@@ -348,7 +422,9 @@ const Navbar = () => {
                         </li>
                       )}
                     </ul>
-                </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </li>
             <li>
               <Link to="/about" className="block py-2 px-3 text-black rounded md:p-0">About</Link>

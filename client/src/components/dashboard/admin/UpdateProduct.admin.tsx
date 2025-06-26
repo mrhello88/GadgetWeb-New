@@ -18,15 +18,20 @@ import {
   BarChart3,
   Search,
   Edit,
+  ChevronLeft,
+  ChevronRight,
+  Star,
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
 import { GetAllProducts, GetProductById, UpdateProduct, GetProductsByCategory, GetCategories } from '../../../hooks/store/thunk/product.thunk';
+import { refreshCategories } from '../../../hooks/store/slice/product.slices';
 import { useLoadMore } from '../../../hooks/usePagination';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../../hooks/store/store';
 import { Product, productByCategory, productByCategoryResponse } from '../../../hooks/store/slice/product.slices';
+
 // Animation variants
 const fadeInUp = {
   hidden: { opacity: 0, y: 40 },
@@ -297,6 +302,7 @@ const UpdateProductPage = () => {
       newImages: [],
     });
     setPreviewImages([]);
+    setShowSuccessMessage(false);
   };
 
   // Get category label for display
@@ -636,9 +642,46 @@ const handleInputChange = (
           setShowSuccessMessage(true);
           toast.success('Product updated successfully');
           
-          // Reset form after a delay
+          // Refresh categories in Redux store to update navbar
+          dispatch(refreshCategories());
+          dispatch(GetCategories({ limit: 50, offset: 0 }));
+          
+          // IMPORTANT: Refresh the products list to show updated data
+          await dispatch(GetAllProducts({ limit: 20, offset: 0 }));
+          
+          // Also refresh the specific product details if we want to stay on the edit form
+          if (selectedProductId) {
+            const updatedProductResult = await dispatch(GetProductById(selectedProductId)).unwrap();
+            if (updatedProductResult.success && updatedProductResult.data) {
+              const updatedProduct = updatedProductResult.data;
+              
+              // Update form with fresh data
+              setProductForm({
+                _id: updatedProduct._id,
+                name: updatedProduct.name,
+                description: updatedProduct.description,
+                price: parseFloat(updatedProduct.price),
+                category: updatedProduct.category,
+                brand: updatedProduct.brand,
+                specifications: updatedProduct.specifications || [],
+                features: updatedProduct.features || [''],
+                images: updatedProduct.images || [],
+                newImages: [],
+              });
+              
+              // Update preview images with fresh data
+              const imageUrls = updatedProduct.images.map((img: string) => 
+                img.startsWith('http') ? img : `http://localhost:5000/images/${img}`
+              );
+              setPreviewImages(imageUrls);
+            }
+          }
+          
+          // Auto-hide success message and optionally reset form after delay
           setTimeout(() => {
-            handleResetSelection();
+            setShowSuccessMessage(false);
+            // Uncomment the line below if you want to go back to product selection after update
+            // handleResetSelection();
           }, 3000);
         } else {
           toast.error(result.message || 'Failed to update product');
@@ -649,6 +692,18 @@ const handleInputChange = (
         toast.error(error.message || 'Error during form submission');
         console.error('Error during form submission:', error);
       }
+    }
+  };
+
+  // Scroll function for horizontal product lists
+  const scroll = (categoryId: string, direction: 'left' | 'right') => {
+    const container = document.getElementById(`product-container-${categoryId}`);
+    if (container) {
+      const scrollAmount = 300;
+      container.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth',
+      });
     }
   };
 
@@ -665,132 +720,297 @@ const handleInputChange = (
   // Display product selection interface if no product is selected
   if (!isProductSelected) {
     return (
-      <div className="p-6 max-w-7xl mx-auto">
+      <div className="min-h-screen bg-gray-50">
         <Helmet>
           <title>Update Product | Admin Dashboard</title>
           <meta name="description" content="Update existing products in your inventory" />
         </Helmet>
         
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <div className="flex items-center mb-6">
-            <Link
-              to="/dashboard"
-              className="mr-4 p-2 text-gray-500 hover:text-gray-700 transition-colors"
+        {/* Header Section */}
+        <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
+          <div className="container mx-auto px-4">
+            <motion.div
+              className="text-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
             >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <h1 className="text-3xl font-bold text-gray-800">Update Product</h1>
-          </div>
-          <p className="text-gray-600 mb-6">Select a product you want to update from the list below.</p>
-          
-          <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Search Input */}
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400" />
+              <div className="flex items-center justify-center mb-4">
+                <Link
+                  to="/dashboard"
+                  className="mr-4 p-2 text-blue-100 hover:text-white transition-colors"
+                >
+                  <ArrowLeft className="w-6 h-6" />
+                </Link>
+                <motion.h1
+                  className="text-4xl md:text-5xl font-bold"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.7, delay: 0.2 }}
+                >
+                  Update Products
+                </motion.h1>
               </div>
-              <input
-                type="text"
-                placeholder="Search products..."
-                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            
-            {/* Category Filter */}
-            <div className="relative">
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+              <motion.p
+                className="text-xl text-blue-100 mb-8 max-w-3xl mx-auto"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.7, delay: 0.4 }}
               >
-                <option value="all">All Categories</option>
-                {availableCategories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+                Select a product from your inventory to update its information, pricing, or specifications.
+                Browse through categories to find the product you want to modify.
+              </motion.p>
+            </motion.div>
           </div>
-        </motion.div>
+        </section>
 
-        {/* Results Counter */}
-        <div className="mb-4 flex justify-between items-center">
-          <p className="text-gray-600">
-            Showing {filteredProducts.length} of {allProducts.total} products
-            {searchTerm && <span className="ml-1">for "{searchTerm}"</span>}
-            {selectedCategory !== 'all' && (
-              <span className="ml-1">
-                in {availableCategories.find(cat => cat.id === selectedCategory)?.name}
-              </span>
-            )}
-          </p>
-          {(searchTerm || selectedCategory !== 'all') && (
-            <button
-              onClick={() => {
-                setSearchTerm('');
-                setSelectedCategory('all');
-              }}
-              className="text-primary-600 hover:text-primary-800 text-sm font-medium"
-            >
-              Clear Filters
-            </button>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProducts.length > 0 ? (
-            filteredProducts.map((product: Product) => (
-              <motion.div
-                key={product._id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className="bg-white rounded-lg shadow-lg overflow-hidden"
-              >
-
-                <div className="relative h-48">
-                  <img
-                    src={
-                      product.images && product.images.length > 0
-                        ? product.images[0].startsWith('http')
-                          ? product.images[0]
-                          : `http://localhost:5000/images/${product.images[0]}`
-                        : '/placeholder.svg'
-                    }
-                    alt={product.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = '/placeholder.svg';
-                    }}
+        {/* Search and Filter Section */}
+        <section className="py-8 bg-white shadow-sm">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                {/* Search Input */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                  <input
+                    type="text"
+                    placeholder="Search products..."
+                    className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                <div className="p-4">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">{product.name}</h3>
-                  <p className="text-gray-600 mb-2">Category: {product.category}</p>
-                  <p className="text-gray-600 mb-2">Brand: {product.brand}</p>
-                  <p className="text-primary-600 font-bold mb-4">${Number(product.price).toFixed(2)}</p>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => handleProductSelect(product._id)}
-                    className="w-full px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all duration-300 flex items-center justify-center"
+                
+                {/* Category Filter */}
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                    <CategoryIcon category={selectedCategory} />
+                  </div>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white appearance-none"
                   >
-                    <Edit className="h-5 w-5 mr-2" />
-                    Edit Product
-                  </motion.button>
+                    <option value="all">All Categories</option>
+                    {availableCategories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </motion.div>
-            ))
-          ) : (
-            <div className="col-span-full text-center text-gray-600 py-8">
-              No products found{searchTerm ? ' matching your search' : ''}
+              </div>
+              
+              {/* Results Counter */}
+              <div className="flex justify-between items-center">
+                <p className="text-gray-600">
+                  Showing {filteredProducts.length} of {allProducts.total} products
+                  {searchTerm && <span className="ml-1">for "{searchTerm}"</span>}
+                  {selectedCategory !== 'all' && (
+                    <span className="ml-1">
+                      in {availableCategories.find(cat => cat.id === selectedCategory)?.name}
+                    </span>
+                  )}
+                </p>
+                {(searchTerm || selectedCategory !== 'all') && (
+                  <button
+                    onClick={() => {
+                      setSearchTerm('');
+                      setSelectedCategory('all');
+                    }}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
+                    Clear Filters
+                  </button>
+                )}
+              </div>
             </div>
+          </div>
+        </section>
+
+        {/* Category Sections */}
+        <div className="pb-16">
+          {/* Group products by category for display */}
+          {(() => {
+            const productsByCategory = filteredProducts.reduce((acc, product) => {
+              const category = product.category || 'Uncategorized';
+              if (!acc[category]) {
+                acc[category] = [];
+              }
+              acc[category].push(product);
+              return acc;
+            }, {} as Record<string, Product[]>);
+
+            return Object.entries(productsByCategory).map(([categoryName, products], index) => (
+              <motion.section
+                key={categoryName}
+                className={`py-16 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} relative`}
+                initial="hidden"
+                animate="visible"
+                variants={staggerContainer}
+              >
+                <div className="container mx-auto px-4">
+                  <div className="flex flex-col md:flex-row items-center gap-8 mb-10">
+                    <motion.div
+                      className="w-full md:w-1/3"
+                      variants={fadeInUp}
+                    >
+                      <div className="relative rounded-xl overflow-hidden aspect-[4/3] bg-gradient-to-br from-blue-400 to-blue-600">
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <CategoryIcon category={categoryName.toLowerCase()} />
+                          <div className="ml-4">
+                            <h2 className="text-3xl font-bold text-white mb-2">{categoryName}</h2>
+                            <p className="text-white/90">{products.length} products available</p>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+
+                    <motion.div
+                      className="w-full md:w-2/3"
+                      variants={fadeInUp}
+                    >
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-2xl font-bold text-gray-900">
+                          Update <span className="text-blue-500">{categoryName}</span> Products
+                        </h3>
+                        <div className="flex gap-2">
+                          <motion.button
+                            onClick={() => scroll(categoryName, 'left')}
+                            className="p-2 rounded-full bg-blue-100 text-blue-500 hover:bg-blue-200 transition-colors"
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            aria-label={`Scroll ${categoryName} left`}
+                          >
+                            <ChevronLeft className="h-5 w-5" />
+                          </motion.button>
+                          <motion.button
+                            onClick={() => scroll(categoryName, 'right')}
+                            className="p-2 rounded-full bg-blue-100 text-blue-500 hover:bg-blue-200 transition-colors"
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            aria-label={`Scroll ${categoryName} right`}
+                          >
+                            <ChevronRight className="h-5 w-5" />
+                          </motion.button>
+                        </div>
+                      </div>
+
+                      <div
+                        id={`product-container-${categoryName}`}
+                        className="flex overflow-x-auto gap-6 pb-4 snap-x snap-mandatory hide-scrollbar"
+                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                      >
+                        {products.map((product) => (
+                          <motion.div
+                            key={product._id}
+                            className="min-w-[280px] max-w-[280px] bg-white rounded-xl shadow-md overflow-hidden snap-start border border-blue-100"
+                            whileHover={{ y: -10 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 10 }}
+                          >
+                            <div className="h-40 overflow-hidden bg-gray-100 flex items-center justify-center relative">
+                              <img
+                                src={
+                                  product.images && product.images.length > 0
+                                    ? product.images[0].startsWith('http')
+                                      ? product.images[0]
+                                      : `http://localhost:5000/images/${product.images[0]}`
+                                    : '/placeholder.svg'
+                                }
+                                alt={product.name}
+                                className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.src = '/placeholder.svg';
+                                }}
+                              />
+                              <div className="absolute top-2 right-2">
+                                <motion.button
+                                  onClick={() => handleProductSelect(product._id)}
+                                  className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors shadow-lg"
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  title="Edit Product"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </motion.button>
+                              </div>
+                            </div>
+                            <div className="p-4">
+                              <div className="flex justify-between items-start mb-2">
+                                <h4 className="text-lg font-semibold text-gray-900">{product.name}</h4>
+                                <span className="text-lg font-bold text-blue-500">
+                                  ${Number(product.price).toFixed(2)}
+                                </span>
+                              </div>
+                              <p className="text-gray-600 text-sm mb-2">Brand: {product.brand}</p>
+                              <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                                {product.description || 'No description available'}
+                              </p>
+                              <div className="flex gap-2">
+                                <Link
+                                  to={`/product/${product._id}`}
+                                  className="flex-1 py-2 px-3 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors text-center"
+                                >
+                                  View Details
+                                </Link>
+                                <button
+                                  onClick={() => handleProductSelect(product._id)}
+                                  className="py-2 px-3 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-1"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                  Edit
+                                </button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  </div>
+                </div>
+              </motion.section>
+            ));
+          })()}
+          
+          {filteredProducts.length === 0 && (
+            <motion.div
+              className="text-center py-16"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              <h3 className="text-2xl font-semibold text-gray-600 mb-4">No Products Found</h3>
+              <p className="text-gray-500 mb-8">
+                {searchTerm || selectedCategory !== 'all'
+                  ? 'Try adjusting your search criteria or filters.'
+                  : 'No products are currently available for updating.'}
+              </p>
+              {(searchTerm || selectedCategory !== 'all') && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setSelectedCategory('all');
+                  }}
+                  className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  Clear Filters
+                </button>
+              )}
+            </motion.div>
           )}
         </div>
+
+        <style>{`
+          .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+          }
+          .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+          }
+        `}</style>
       </div>
     );
   }
@@ -824,7 +1044,7 @@ const handleInputChange = (
         >
           <Check className="w-5 h-5 mr-2 text-primary-500" />
           <span>
-            Product successfully updated!
+            Product successfully updated! The changes are now visible.
           </span>
         </motion.div>
       )}
@@ -1177,4 +1397,4 @@ const handleInputChange = (
   );
 };
 
-export default UpdateProductPage; 
+export default UpdateProductPage;

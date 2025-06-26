@@ -246,7 +246,9 @@ const SpecificCategoryPage = () => {
       const sortBy = sortOption === 'price-low' ? 'price' : 
                      sortOption === 'price-high' ? 'price' :
                      sortOption === 'rating' ? 'rating' : 'createdAt';
-      const sortOrder = sortOption === 'price-high' ? 'desc' : 'asc';
+      const sortOrder = sortOption === 'price-high' ? 'desc' : 
+                        sortOption === 'rating' ? 'desc' :
+                        sortOption === 'newest' ? 'desc' : 'asc';
       
       dispatch(GetProductsByCategory({
         category,
@@ -272,7 +274,9 @@ const SpecificCategoryPage = () => {
       const sortBy = sortOption === 'price-low' ? 'price' : 
                      sortOption === 'price-high' ? 'price' :
                      sortOption === 'rating' ? 'rating' : 'createdAt';
-      const sortOrder = sortOption === 'price-high' ? 'desc' : 'asc';
+      const sortOrder = sortOption === 'price-high' ? 'desc' : 
+                        sortOption === 'rating' ? 'desc' :
+                        sortOption === 'newest' ? 'desc' : 'asc';
       
       loadMoreCategoryProducts({
         category,

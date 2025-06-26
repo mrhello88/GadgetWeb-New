@@ -184,6 +184,7 @@ const ProductCompare = () => {
   const [showSuccessMessage, setShowSuccessMessage] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [hasAttemptedLoad, setHasAttemptedLoad] = useState<boolean>(false);
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const navigate = useNavigate();
 
   // Load categories data if it's not already in the store - Fixed to prevent continuous fetching
@@ -279,16 +280,54 @@ const ProductCompare = () => {
   // Handle category change
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
-    // When changing category, clear selections unless the pre-selected one from the URL is in that category
-    const productFromUrl = allProducts.find(p => p._id === id);
-    if (productFromUrl && productFromUrl.category === category) {
-      setSelectedProducts([productFromUrl]);
-    } else {
-      setSelectedProducts([]);
-    }
+    setSelectedProducts([]);
+    setSimilarityScore(null);
     setShowProductDropdown(false);
+    setSearchTerm(''); // Clear search when changing category
+    
+    const categoryProducts = allProducts.filter(product => product.category === category);
+    setAvailableProducts(categoryProducts);
   };
-  
+
+  // Filter products based on search term
+  const filteredProducts = availableProducts.filter(product => {
+    if (!searchTerm) return true;
+    
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      product.name.toLowerCase().includes(searchLower) ||
+      product.brand.toLowerCase().includes(searchLower) ||
+      product.description.toLowerCase().includes(searchLower)
+    );
+  });
+
+  // Clear search function
+  const clearSearch = () => {
+    setSearchTerm('');
+  };
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Press '/' to focus search when dropdown is open
+      if (event.key === '/' && showProductDropdown) {
+        event.preventDefault();
+        const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
+        if (searchInput) {
+          searchInput.focus();
+        }
+      }
+      // Press Escape to close dropdown
+      if (event.key === 'Escape' && showProductDropdown) {
+        setShowProductDropdown(false);
+        setSearchTerm('');
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showProductDropdown]);
+
   // Calculate similarity when selected products change
   useEffect(() => {
     if (selectedProducts.length === 2) {
@@ -558,10 +597,10 @@ const ProductCompare = () => {
               }`}
             >
               <div className="flex items-center">
-                <PlusCircle className="w-5 h-5 mr-3 text-primary-500" />
+                <Search className="w-5 h-5 mr-3 text-primary-500" />
                 <span>
                   {selectedCategory 
-                    ? `Add ${categoryTitles[selectedCategory]} to compare (${availableProducts.length} available)`
+                    ? `Search & add ${categoryTitles[selectedCategory]} to compare (${availableProducts.length} available)`
                     : 'Select a category first'
                   }
                 </span>
@@ -571,66 +610,111 @@ const ProductCompare = () => {
 
             {/* Product dropdown */}
             {showProductDropdown && availableProducts.length > 0 && (
-              <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-80 overflow-y-auto">
+              <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-80 overflow-hidden">
+                {/* Search input */}
                 <div className="p-3 border-b border-gray-100 bg-gray-50">
-                  <p className="text-sm font-medium text-gray-700">
-                    Select from {availableProducts.length} {categoryTitles[selectedCategory]} products:
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <input
+                      type="text"
+                      placeholder={`Search ${categoryTitles[selectedCategory]} products...`}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-9 pr-8 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                      autoFocus
+                    />
+                    {searchTerm && (
+                      <button
+                        onClick={clearSearch}
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {searchTerm 
+                      ? `${filteredProducts.filter(p => !selectedProducts.some(s => s._id === p._id)).length} products found`
+                      : `${availableProducts.length} ${categoryTitles[selectedCategory]} products available • Press / to search`
+                    }
                   </p>
                 </div>
-                {availableProducts
-                  .filter(product => !selectedProducts.some(selected => selected._id === product._id))
-                  .map((product) => (
-                    <div
-                      key={product._id}
-                      className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex items-center gap-3"
-                      onClick={() => {
-                        selectProduct(product);
-                        setShowProductDropdown(false);
-                      }}
-                    >
-                      <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0">
-                        <img
-                          src={
-                            product.images && product.images[0]
-                              ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/images/${product.images[0]}`
-                              : '/placeholder.svg'
-                          }
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = '/placeholder.svg';
+                
+                {/* Products list */}
+                <div className="max-h-64 overflow-y-auto">
+                  {filteredProducts.filter(product => !selectedProducts.some(selected => selected._id === product._id)).length > 0 ? (
+                    filteredProducts
+                      .filter(product => !selectedProducts.some(selected => selected._id === product._id))
+                      .map((product) => (
+                        <div
+                          key={product._id}
+                          className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex items-center gap-3"
+                          onClick={() => {
+                            selectProduct(product);
+                            setShowProductDropdown(false);
+                            setSearchTerm(''); // Clear search after selection
                           }}
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">{product.name}</h3>
-                        <p className="text-sm text-gray-500">{product.brand}</p>
-                        <div className="flex items-center mt-1">
-                          {product.rating && product.rating > 0 && product.reviewCount && product.reviewCount > 0 && (
-                            <>
-                              <Star className="w-3 h-3 text-warning-500 fill-current mr-1" />
+                        >
+                          <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0">
+                            <img
+                              src={
+                                product.images && product.images[0]
+                                  ? `http://localhost:5000/images/${product.images[0]}`
+                                  : '/placeholder.svg'
+                              }
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = '/placeholder.svg';
+                              }}
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-medium text-gray-900">{product.name}</h3>
+                            <p className="text-sm text-gray-500">{product.brand}</p>
+                            <div className="flex items-center mt-1">
+                              {product.rating && product.rating > 0 && product.reviewCount && product.reviewCount > 0 && (
+                                <>
+                                  <Star className="w-3 h-3 text-warning-500 fill-current mr-1" />
+                                  <span className="text-xs text-gray-500">
+                                    {product.rating.toFixed(1)}
+                                  </span>
+                                </>
+                              )}
+                              <DollarSign className="w-3 h-3 text-success-500 ml-2 mr-1" />
                               <span className="text-xs text-gray-500">
-                                {product.rating.toFixed(1)}
+                                ${product.price.toLocaleString()}
                               </span>
-                            </>
-                          )}
-                          <DollarSign className="w-3 h-3 text-success-500 ml-2 mr-1" />
-                          <span className="text-xs text-gray-500">
-                            ${product.price.toLocaleString()}
-                          </span>
+                            </div>
+                          </div>
+                          <div className="text-primary-600">
+                            <PlusCircle className="w-5 h-5" />
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-primary-600">
-                        <PlusCircle className="w-5 h-5" />
-                      </div>
+                      ))
+                  ) : (
+                    <div className="p-6 text-center text-gray-500">
+                      {searchTerm ? (
+                        <div>
+                          <Search className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                          <p className="font-medium">No products found</p>
+                          <p className="text-sm">Try adjusting your search terms</p>
+                          <button
+                            onClick={clearSearch}
+                            className="mt-2 text-primary-600 hover:text-primary-700 text-sm font-medium"
+                          >
+                            Clear search
+                          </button>
+                        </div>
+                      ) : filteredProducts.every(product => selectedProducts.some(selected => selected._id === product._id)) ? (
+                        <p>All products in this category are already selected for comparison</p>
+                      ) : (
+                        <p>No products available in this category</p>
+                      )}
                     </div>
-                  ))}
-                {availableProducts.every(product => selectedProducts.some(selected => selected._id === product._id)) && (
-                  <div className="p-4 text-center text-gray-500">
-                    <p>All products in this category are already selected for comparison</p>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             )}
           </div>

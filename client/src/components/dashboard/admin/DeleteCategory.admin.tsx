@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../../hooks/store/store';
 import { GetCategories, DeleteCategory } from '../../../hooks/store/thunk/product.thunk';
+import { refreshCategories } from '../../../hooks/store/slice/product.slices';
 import { Trash2, Search, X } from 'lucide-react';
 import type { productByCategoryResponse, productByCategory } from '../../../hooks/store/slice/product.slices';
 
@@ -48,6 +49,8 @@ const DeleteCategoryComponent = () => {
         setShowDeleteConfirm(null);
         toast.success(result.message || 'Category deleted successfully');
         
+        // Refresh categories in Redux store to update navbar
+        dispatch(refreshCategories());
         // Refresh the categories list
         await dispatch(GetCategories({ 
           limit: 50, 

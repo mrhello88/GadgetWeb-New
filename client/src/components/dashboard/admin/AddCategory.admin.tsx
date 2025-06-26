@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { FileText, Tag, Upload, Image, Check } from 'lucide-react';
 import { useDispatch } from 'react-redux';
 import { AppDispatch } from '../../../hooks/store/store';
-import { AddCategory } from '../../../hooks/store/thunk/product.thunk';
+import { AddCategory, GetCategories } from '../../../hooks/store/thunk/product.thunk';
+import { refreshCategories } from '../../../hooks/store/slice/product.slices';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import useErrorHandler from '../../../hooks/useErrorHandler';
@@ -226,6 +227,11 @@ const AddCategoryAdminPage = () => {
       if (payload?.success) {
         toast.success(payload.message || 'Category added successfully!');
         resetForm();
+        
+        // Refresh categories in Redux store to update navbar
+        dispatch(refreshCategories());
+        // Also fetch updated categories
+        dispatch(GetCategories({ limit: 50, offset: 0 }));
       } else {
         handleError(payload?.message || 'Failed to add category', { showToast: true });
       }

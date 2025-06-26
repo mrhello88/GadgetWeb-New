@@ -198,21 +198,60 @@ const productSlice = createSlice({
   name: 'product',
   initialState,
   reducers: {
-    // Action to reset pagination
-    resetAllProducts: (state) => {
-      state.allProducts = initialState.allProducts;
+    // Clear all product states
+    clearProductState: (state) => {
+      state.allProducts = {
+        data: [],
+        loading: false,
+        error: null,
+        total: 0,
+        hasMore: false,
+        currentPage: 0,
+      };
+      state.categoryProducts = {
+        data: [],
+        loading: false,
+        error: null,
+        total: 0,
+        hasMore: false,
+        currentPage: 0,
+        currentCategory: null,
+        filters: {},
+      };
     },
-    resetCategoryProducts: (state) => {
-      state.categoryProducts = initialState.categoryProducts;
+    
+    // Clear category products
+    clearCategoryProducts: (state) => {
+      state.categoryProducts = {
+        data: [],
+        loading: false,
+        error: null,
+        total: 0,
+        hasMore: false,
+        currentPage: 0,
+        currentCategory: null,
+        filters: {},
+      };
     },
-    resetCategories: (state) => {
-      state.categories = initialState.categories;
+
+    // Set current category and filters
+    setCategoryFilters: (state, action: PayloadAction<{ category: string; filters: any }>) => {
+      state.categoryProducts.currentCategory = action.payload.category;
+      state.categoryProducts.filters = action.payload.filters;
     },
-    // Action to set filters
-    setCategoryFilters: (state, action) => {
-      state.categoryProducts.filters = action.payload;
-      state.categoryProducts.currentPage = 0;
-      state.categoryProducts.data = [];
+
+    // Force refresh categories - this will trigger navbar update
+    refreshCategories: (state) => {
+      state.categories.loading = false;
+      state.categories.error = null;
+      // This will be used to trigger a re-fetch in components
+    },
+
+    // Update categories after successful operations
+    updateCategoriesAfterOperation: (state, action: PayloadAction<productByCategory[]>) => {
+      state.categories.data = action.payload;
+      state.categories.loading = false;
+      state.categories.error = null;
     },
   },
   extraReducers: (builder) => {
@@ -363,7 +402,7 @@ const productSlice = createSlice({
   },
 });
 
-export const { resetAllProducts, resetCategoryProducts, resetCategories, setCategoryFilters } = productSlice.actions;
+export const { clearProductState, clearCategoryProducts, setCategoryFilters, refreshCategories, updateCategoriesAfterOperation } = productSlice.actions;
 export default productSlice.reducer;
 
 // Define Review interface
