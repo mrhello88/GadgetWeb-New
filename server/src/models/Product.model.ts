@@ -110,7 +110,7 @@ const productSchema = new Schema<IProduct>({
       ref: 'Product',
     },
   ],
-});
+}, { timestamps: true });
 
 // Method to calculate and update the average rating
 productSchema.methods.calculateAverageRating = async function() {

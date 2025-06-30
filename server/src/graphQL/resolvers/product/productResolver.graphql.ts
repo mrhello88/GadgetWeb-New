@@ -135,11 +135,14 @@ export const productResolver = {
       sortOrder?: 'asc' | 'desc';
       filters?: {
         brand?: string;
+        brands?: string[];
         minPrice?: number;
         maxPrice?: number;
         minRating?: number;
+        minRatings?: number[];
         search?: string;
         priceRange?: string;
+        priceRanges?: string[];
         specifications?: Array<{name: string; value: string}>;
       };
     }) => {
@@ -148,7 +151,10 @@ export const productResolver = {
 
         // Apply additional filters if provided
         if (filters) {
-          if (filters.brand) {
+          // Handle multiple brands
+          if (filters.brands && filters.brands.length > 0) {
+            query.brand = { $in: filters.brands.map(brand => new RegExp(brand, 'i')) };
+          } else if (filters.brand) {
             query.brand = { $regex: filters.brand, $options: 'i' };
           }
           
@@ -158,8 +164,30 @@ export const productResolver = {
             if (filters.maxPrice !== undefined) query.price.$lte = filters.maxPrice;
           }
 
-          // Handle price range filter
-          if (filters.priceRange) {
+          // Handle price range filter (support multiple)
+          if (filters.priceRanges && Array.isArray(filters.priceRanges) && filters.priceRanges.length > 0) {
+            const priceOrConditions = filters.priceRanges.map((range: string) => {
+              switch (range) {
+                case 'under-100':
+                  return { price: { $lt: 100 } };
+                case '100-300':
+                  return { price: { $gte: 100, $lte: 300 } };
+                case '300-500':
+                  return { price: { $gte: 300, $lte: 500 } };
+                case '500-1000':
+                  return { price: { $gte: 500, $lte: 1000 } };
+                case 'over-1000':
+                  return { price: { $gt: 1000 } };
+                default:
+                  return null;
+              }
+            }).filter(Boolean);
+            if (priceOrConditions.length > 0) {
+              if (!query.$or) query.$or = [];
+              query.$or = query.$or.concat(priceOrConditions);
+            }
+          } else if (filters.priceRange) {
+            // fallback for single priceRange (legacy)
             switch (filters.priceRange) {
               case 'under-100':
                 query.price = { $lt: 100 };
@@ -179,7 +207,18 @@ export const productResolver = {
             }
           }
           
-          if (filters.minRating !== undefined) {
+          // Handle multiple ratings
+          if (filters.minRatings && filters.minRatings.length > 0) {
+            const ratingConditions = filters.minRatings.map(rating => ({ rating: { $gte: rating } }));
+            if (query.$or && !query.$and) {
+              query.$and = [{ $or: query.$or }, { $or: ratingConditions }];
+              delete query.$or;
+            } else if (query.$and) {
+              query.$and.push({ $or: ratingConditions });
+            } else {
+              query.$or = query.$or ? [...query.$or, ...ratingConditions] : ratingConditions;
+            }
+          } else if (filters.minRating !== undefined) {
             query.rating = { $gte: filters.minRating };
           }
 

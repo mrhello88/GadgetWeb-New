@@ -171,11 +171,14 @@ export const productTypeDefs = gql`
   input ProductFiltersInput {
     category: String
     brand: String
+    brands: [String]
     minPrice: Float
     maxPrice: Float
     minRating: Float
+    minRatings: [Float]
     search: String
     priceRange: String
+    priceRanges: [String]
     specifications: [SpecificationFilterInput]
   }
 

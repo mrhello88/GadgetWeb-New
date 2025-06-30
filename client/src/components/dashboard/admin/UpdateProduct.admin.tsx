@@ -76,29 +76,50 @@ interface FormErrors {
   [key: string]: string | undefined;
 }
 
-// Category icons mapping
-const CategoryIcon = ({ category }: { category: string }) => {
-  switch (category) {
-    case 'smartphones':
-      return <Smartphone className="w-5 h-5" />;
-    case 'laptops':
-      return <Laptop className="w-5 h-5" />;
-    case 'tablets':
-      return <Tablet className="w-5 h-5" />;
-    case 'headphones':
-      return <Headphones className="w-5 h-5" />;
-    default:
-      return <BarChart3 className="w-5 h-5" />;
+// Category image component - shows actual images from database
+const CategoryImage = ({ categoryId, categoryName, size = "w-5 h-5" }: { categoryId: string; categoryName?: string; size?: string }) => {
+  const { categories } = useSelector((state: RootState) => state.product);
+  
+  // Find the category by ID or name
+  const category = categories.data.find(cat => 
+    cat._id === categoryId || 
+    cat.category.toLowerCase() === categoryId.toLowerCase() ||
+    (categoryName && cat.category.toLowerCase() === categoryName.toLowerCase())
+  );
+  
+  if (category && category.image) {
+    const imageUrl = category.image.startsWith('http') 
+      ? category.image 
+      : `http://localhost:5000/categoryImage/${category.image}`;
+    
+    return (
+      <img 
+        src={imageUrl} 
+        alt={category.category}
+        className={`${size} object-cover rounded-md`}
+        onError={(e) => {
+          // Fallback to default icon if image fails to load
+          const target = e.target as HTMLImageElement;
+          target.style.display = 'none';
+          target.nextElementSibling?.classList.remove('hidden');
+        }}
+      />
+    );
   }
+  
+  // Fallback to icon if no image found
+  return <BarChart3 className={`${size} text-gray-400`} />;
 };
 
-// Category options
-const categoryOptions = [
-  { value: 'smartphones', label: 'Smartphones' },
-  { value: 'laptops', label: 'Laptops' },
-  { value: 'tablets', label: 'Tablets' },
-  { value: 'headphones', label: 'Headphones' },
-];
+// Helper function to get category data by name
+const getCategoryByName = (categoryName: string, categoriesData: any[]) => {
+  return categoriesData.find(cat => 
+    cat.category.toLowerCase() === categoryName.toLowerCase() ||
+    cat._id === categoryName
+  );
+};
+
+// Category options - removed hardcoded values, will use live data from Redux
 
 // Default specification templates by category
 const defaultSpecifications: Record<string, Specification[]> = {
@@ -171,22 +192,33 @@ const UpdateProductPage = () => {
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Redux state
-  const { allProducts, loading, error, data } = useSelector((state: RootState) => state.product);
+  const { allProducts, loading, error, data, categories } = useSelector((state: RootState) => state.product);
   const { loadMoreProducts } = useLoadMore();
 
-  // Initial data fetch for product list
+  // Initial data fetch for product list and categories
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const result = await dispatch(GetAllProducts({ limit: 20, offset: 0 })).unwrap();
-        if (!result.success) {
-          toast.error(result.message || 'Failed to fetch products');
+        // Fetch both products and categories
+        const [productsResult, categoriesResult] = await Promise.all([
+          dispatch(GetAllProducts({ limit: 20, offset: 0 })).unwrap(),
+          dispatch(GetCategories({ limit: 50, offset: 0 })).unwrap()
+        ]);
+        
+        if (!productsResult.success) {
+          toast.error(productsResult.message || 'Failed to fetch products');
           return;
         }
+        
+        if (!categoriesResult.success) {
+          toast.error(categoriesResult.message || 'Failed to fetch categories');
+          return;
+        }
+        
         setIsInitialized(true);
       } catch (error) {
-        console.error('Failed to fetch products:', error);
-        toast.error(error instanceof Error ? error.message : 'Failed to fetch products');
+        console.error('Failed to fetch data:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to fetch data');
       }
     };
 
@@ -194,16 +226,21 @@ const UpdateProductPage = () => {
     const hasValidProductsData = () => {
       return allProducts.data.length > 0;
     };
+
+    // Helper function to check if we have valid categories data
+    const hasValidCategoriesData = () => {
+      return categories.data.length > 0;
+    };
                       
-    if (!isInitialized || !hasValidProductsData()) {
+    if (!isInitialized || !hasValidProductsData() || !hasValidCategoriesData()) {
       fetchData();
     }
-  }, [dispatch, isInitialized, allProducts.data]);
+  }, [dispatch, isInitialized, allProducts.data, categories.data]);
 
-  // Get available categories for filter dropdown
+  // Get available categories for filter dropdown from Redux (live data)
   const availableCategories = [
-    { id: 'all', name: 'All Categories' },
-    ...categoryOptions.map(cat => ({ id: cat.value, name: cat.label }))
+   
+    ...categories.data.map(cat => ({ id: cat._id, name: cat.category }))
   ];
 
   // Filter products based on search term and selected category
@@ -214,6 +251,7 @@ const UpdateProductPage = () => {
       product.brand.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesCategory = selectedCategory === 'all' || 
+      product.category === selectedCategory ||
       product.category.toLowerCase() === selectedCategory.toLowerCase();
     
     return matchesSearch && matchesCategory;
@@ -642,7 +680,7 @@ const handleInputChange = (
           setShowSuccessMessage(true);
           toast.success('Product updated successfully');
           
-          // Refresh categories in Redux store to update navbar
+          // Refresh categories in Redux store to update navbar and dropdowns
           dispatch(refreshCategories());
           dispatch(GetCategories({ limit: 50, offset: 0 }));
           
@@ -784,7 +822,7 @@ const handleInputChange = (
                 {/* Category Filter */}
                 <div className="relative">
                   <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                    <CategoryIcon category={selectedCategory} />
+                    <CategoryImage categoryId={selectedCategory} />
                   </div>
                   <select
                     value={selectedCategory}
@@ -855,14 +893,31 @@ const handleInputChange = (
                       className="w-full md:w-1/3"
                       variants={fadeInUp}
                     >
-                      <div className="relative rounded-xl overflow-hidden aspect-[4/3] bg-gradient-to-br from-blue-400 to-blue-600">
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <CategoryIcon category={categoryName.toLowerCase()} />
-                          <div className="ml-4">
-                            <h2 className="text-3xl font-bold text-white mb-2">{categoryName}</h2>
-                            <p className="text-white/90">{products.length} products available</p>
-                          </div>
-                        </div>
+                      <div className="relative rounded-xl overflow-hidden aspect-[4/3]">
+                        {(() => {
+                          const category = getCategoryByName(categoryName, categories.data);
+                          return (
+                            <>
+                              <img
+                                src={
+                                  category?.image?.startsWith('http')
+                                    ? category.image
+                                    : `http://localhost:5000/categoryImage/${category?.image}`
+                                }
+                                alt={categoryName}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.src = '/placeholder.svg';
+                                }}
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                              <div className="absolute bottom-0 left-0 right-0 p-6">
+                                <h2 className="text-3xl font-bold text-white mb-2">{categoryName}</h2>
+                                <p className="text-white/90">{products.length} products available</p>
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     </motion.div>
 
@@ -1111,9 +1166,11 @@ const handleInputChange = (
                   Category
                 </label>
                 <div className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 flex items-center gap-2">
-                  <CategoryIcon category={productForm.category || ''} />
+                  <CategoryImage categoryId={productForm.category || ''} />
                   <span className="text-gray-700">
-                    {categoryOptions.find(opt => opt.value === productForm.category)?.label || productForm.category}
+                    {categories.data.find(cat => cat._id === productForm.category)?.category || 
+                     categories.data.find(cat => cat.category.toLowerCase() === productForm.category.toLowerCase())?.category || 
+                     productForm.category}
                   </span>
                 </div>
                 <p className="mt-1 text-sm text-gray-500">Category cannot be changed</p>

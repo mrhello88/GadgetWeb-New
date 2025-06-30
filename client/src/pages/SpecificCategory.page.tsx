@@ -81,8 +81,6 @@ const generateCategoryFilters = (products: ExtendedProduct[]): FilterOption[] =>
   const filters: FilterOption[] = [];
 
   // MANDATORY FILTERS
-  
-  // 1. Price Filter (mandatory)
   const priceRanges = [
     'Under $100',
     '$100 - $300',
@@ -97,7 +95,6 @@ const generateCategoryFilters = (products: ExtendedProduct[]): FilterOption[] =>
     icon: DollarSign
   });
 
-  // 2. Brand Filter (mandatory)
   const brands = [...new Set(products.map(p => p.brand).filter(Boolean))].sort();
   if (brands.length > 0) {
     filters.push({
@@ -109,8 +106,6 @@ const generateCategoryFilters = (products: ExtendedProduct[]): FilterOption[] =>
   }
 
   // COMMON FILTERS
-  
-  // 3. Rating Filter (common)
   const ratingOptions = ['4+ Stars', '3+ Stars', '2+ Stars', '1+ Stars'];
   filters.push({
     name: 'Rating',
@@ -119,35 +114,36 @@ const generateCategoryFilters = (products: ExtendedProduct[]): FilterOption[] =>
     icon: Star
   });
 
-  // 4. Additional spec filters (pick top 2 most common specs)
-  const freq = new Map<string, number>();
-  products.forEach((p) =>
-    p.specifications.forEach((s) =>
-      freq.set(s.name, (freq.get(s.name) || 0) + 1)
-    )
-  );
-
-  const topSpecs = Array.from(freq.entries())
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 2)
-    .map(([name]) => name);
-
-  topSpecs.forEach((specName) => {
-    const vals = new Set<string>();
-    products.forEach((p) =>
-      p.specifications
-        .filter((s) => s.name === specName)
-        .forEach((s) => vals.add(s.value))
-    );
-    if (vals.size > 0) {
-      filters.push({
-        name: specName,
-        options: Array.from(vals).sort(),
-        type: 'common'
-      });
-    }
+  // DYNAMIC SPECIFICATION FILTERS
+  const excludedSpecNames = [
+    'price', 'brand', 'rating', 'name', 'description', 
+    'category', 'image', 'images', 'id', '_id'
+  ];
+  const specFreq = new Map<string, Map<string, number>>();
+  products.forEach((p) => {
+    p.specifications.forEach((spec) => {
+      const specNameLower = spec.name.toLowerCase();
+      if (!excludedSpecNames.some(excluded => specNameLower.includes(excluded))) {
+        if (!specFreq.has(spec.name)) {
+          specFreq.set(spec.name, new Map());
+        }
+        const valueMap = specFreq.get(spec.name)!;
+        valueMap.set(spec.value, (valueMap.get(spec.value) || 0) + 1);
+      }
+    });
   });
-
+  const validSpecs = Array.from(specFreq.entries())
+    .filter(([name, valueMap]) => valueMap.size > 1)
+    .sort((a, b) => b[1].size - a[1].size)
+    .slice(0, 2);
+  validSpecs.forEach(([specName, valueMap]) => {
+    const values = Array.from(valueMap.keys()).sort();
+    filters.push({
+      name: specName,
+      options: values,
+      type: 'common'
+    });
+  });
   return filters;
 };
 
@@ -178,31 +174,33 @@ const SpecificCategoryPage = () => {
       filters.search = searchQuery.trim();
     }
     
-    // Price Range
+    // Price Range - Handle multiple selections
     if (activeFilters['Price Range']?.length > 0) {
-      const priceRange = activeFilters['Price Range'][0];
-      switch (priceRange) {
-        case 'Under $100':
-          filters.priceRange = 'under-100';
-          break;
-        case '$100 - $300':
-          filters.priceRange = '100-300';
-          break;
-        case '$300 - $500':
-          filters.priceRange = '300-500';
-          break;
-        case '$500 - $1000':
-          filters.priceRange = '500-1000';
-          break;
-        case 'Over $1000':
-          filters.priceRange = 'over-1000';
-          break;
+      const priceRanges = activeFilters['Price Range'].map(priceRange => {
+        switch (priceRange) {
+          case 'Under $100':
+            return 'under-100';
+          case '$100 - $300':
+            return '100-300';
+          case '$300 - $500':
+            return '300-500';
+          case '$500 - $1000':
+            return '500-1000';
+          case 'Over $1000':
+            return 'over-1000';
+          default:
+            return null;
+        }
+      }).filter(Boolean);
+      
+      if (priceRanges.length > 0) {
+        filters.priceRanges = priceRanges; // Send array of price ranges
       }
     }
     
-    // Brand
+    // Brand - Handle multiple selections
     if (activeFilters['Brand']?.length > 0) {
-      filters.brand = activeFilters['Brand'][0];
+      filters.brands = activeFilters['Brand']; // Send array of brands
     }
     
     // Rating
@@ -243,12 +241,14 @@ const SpecificCategoryPage = () => {
   // Fetch initial data when category or filters change
   useEffect(() => {
     if (category) {
-      const sortBy = sortOption === 'price-low' ? 'price' : 
-                     sortOption === 'price-high' ? 'price' :
-                     sortOption === 'rating' ? 'rating' : 'createdAt';
-      const sortOrder = sortOption === 'price-high' ? 'desc' : 
-                        sortOption === 'rating' ? 'desc' :
-                        sortOption === 'newest' ? 'desc' : 'asc';
+    const sortBy = sortOption === 'price-low' ? 'price' : 
+               sortOption === 'price-high' ? 'price' :
+               sortOption === 'rating' ? 'rating' : 
+               sortOption === 'newest' ? 'createdAt' : 'createdAt';
+const sortOrder = sortOption === 'price-low' ? 'asc' :
+                  sortOption === 'price-high' ? 'desc' : 
+                  sortOption === 'rating' ? 'desc' :
+                  sortOption === 'newest' ? 'desc' : 'asc';
       
       dispatch(GetProductsByCategory({
         category,
@@ -272,11 +272,13 @@ const SpecificCategoryPage = () => {
   const handleLoadMore = () => {
     if (category && categoryProducts.hasMore && !categoryProducts.loading) {
       const sortBy = sortOption === 'price-low' ? 'price' : 
-                     sortOption === 'price-high' ? 'price' :
-                     sortOption === 'rating' ? 'rating' : 'createdAt';
-      const sortOrder = sortOption === 'price-high' ? 'desc' : 
-                        sortOption === 'rating' ? 'desc' :
-                        sortOption === 'newest' ? 'desc' : 'asc';
+      sortOption === 'price-high' ? 'price' :
+      sortOption === 'rating' ? 'rating' : 
+      sortOption === 'newest' ? 'createdAt' : 'createdAt';
+const sortOrder = sortOption === 'price-low' ? 'asc' :
+         sortOption === 'price-high' ? 'desc' : 
+         sortOption === 'rating' ? 'desc' :
+         sortOption === 'newest' ? 'desc' : 'asc';
       
       loadMoreCategoryProducts({
         category,
@@ -358,7 +360,7 @@ const SpecificCategoryPage = () => {
       </Helmet>
 
       <motion.div
-        className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950 dark:to-purple-950"
+        className="bg-gray-100 dark:bg-gray-800"
         initial="hidden"
         animate="visible"
         variants={fadeIn}
@@ -376,7 +378,7 @@ const SpecificCategoryPage = () => {
               </span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold mb-3">{findCategoryData}</h1>
-            <p className="text-gray-600 dark:text-gray-400 max-w-3xl">
+            <p className="text-gray-600 max-w-3xl">
               {findDescriptionData}
             </p>
           </motion.div>

@@ -34,6 +34,40 @@ const formatPrice = (price: string | number): string => {
   }).format(typeof price === 'string' ? parseFloat(price) : price);
 };
 
+// Category image component - shows actual images from database
+const CategoryImage = ({ categoryId, size = "w-5 h-5" }: { categoryId: string; size?: string }) => {
+  const { categories } = useSelector((state: RootState) => state.product);
+  
+  // Find the category by ID
+  const category = categories.data.find(cat => 
+    cat._id === categoryId || 
+    cat.category.toLowerCase() === categoryId.toLowerCase()
+  );
+  
+  if (category && category.image) {
+    const imageUrl = category.image.startsWith('http') 
+      ? category.image 
+      : `http://localhost:5000/categoryImage/${category.image}`;
+    
+    return (
+      <img 
+        src={imageUrl} 
+        alt={category.category}
+        className={`${size} object-cover rounded-md`}
+        onError={(e) => {
+          // Fallback to default icon if image fails to load
+          const target = e.target as HTMLImageElement;
+          target.style.display = 'none';
+          target.nextElementSibling?.classList.remove('hidden');
+        }}
+      />
+    );
+  }
+  
+  // Fallback to icon if no image found
+  return <Filter className={`${size} text-gray-400`} />;
+};
+
 // Type guard for category response
 const isProductByCategoryResponse = (
   data: any
@@ -136,8 +170,8 @@ const DeleteProductComponent = () => {
       const result = await dispatch(DeleteProduct(productId)).unwrap();
       if (result.success) {
         toast.success(result.message);
-        // Refresh the categories and products
-        dispatch(GetCategories({ limit: 20, offset: 0 }));
+        // Refresh the categories and products to ensure live updates
+        await dispatch(GetCategories({ limit: 20, offset: 0 }));
       } else {
         toast.error(result.message);
       }
@@ -226,7 +260,13 @@ const DeleteProductComponent = () => {
               
               {/* Category Filter */}
               <div className="relative">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                  {selectedCategory === 'all' ? (
+                    <Filter className="w-5 h-5 text-gray-400" />
+                  ) : (
+                    <CategoryImage categoryId={selectedCategory} size="w-5 h-5" />
+                  )}
+                </div>
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
