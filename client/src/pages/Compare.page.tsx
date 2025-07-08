@@ -782,59 +782,6 @@ const ProductCompare = () => {
             )}
           </div>
 
-          {/* Similarity score visualization */}
-          {similarityScore !== null && selectedProducts.length >= 2 && (
-            <motion.div
-              initial="hidden"
-              animate="visible"
-              variants={fadeInUp}
-              className="bg-white rounded-xl shadow-lg p-6 mb-10 text-center"
-            >
-              <h2 className="text-2xl font-bold mb-4">Similarity Score</h2>
-              <div className="flex justify-center items-center mb-4">
-                <div className="relative w-40 h-40">
-                  <svg className="w-full h-full" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="45" fill="none" stroke="#e5e7eb" strokeWidth="10" />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="45"
-                      fill="none"
-                      stroke={
-                        similarityScore > 70
-                          ? '#10b981'
-                          : similarityScore > 40
-                          ? '#f59e0b'
-                          : '#ef4444'
-                      }
-                      strokeWidth="10"
-                      strokeDasharray={`${(similarityScore / 100) * 283} 283`}
-                      strokeDashoffset="0"
-                      transform="rotate(-90 50 50)"
-                    />
-                    <text
-                      x="50"
-                      y="55"
-                      fontSize="22"
-                      fontWeight="bold"
-                      textAnchor="middle"
-                      fill="#1f2937"
-                    >
-                      {similarityScore}%
-                    </text>
-                  </svg>
-                </div>
-              </div>
-              <p className="text-gray-600">
-                {similarityScore > 70
-                  ? 'These products are very similar with many matching specifications!'
-                  : similarityScore > 40
-                  ? 'These products have moderate similarity with some matching specifications.'
-                  : 'These products have substantial differences in specifications.'}
-              </p>
-            </motion.div>
-          )}
-
           {/* Best Product Recommendation */}
           {(() => {
             const bestProduct = getBestProduct();
@@ -889,9 +836,6 @@ const ProductCompare = () => {
                     <div className="text-right">
                       <div className="text-2xl font-bold text-success-600">
                         ${bestProduct.product.price.toLocaleString()}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Score: {Math.round(bestProduct.score)}/100
                       </div>
                     </div>
                   </div>

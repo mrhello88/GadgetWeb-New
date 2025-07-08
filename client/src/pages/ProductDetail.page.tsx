@@ -393,6 +393,12 @@ const ProductDetailPage = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => {
+                      // Check if user is logged in before allowing compare
+                      if (!isLoggedIn) {
+                        navigate('/user/login');
+                        return;
+                      }
+                      
                       try {
                         navigate(`/compare/${product._id}`);
                       } catch (error) {
@@ -523,7 +529,7 @@ const ProductDetailPage = () => {
                       </motion.button>
                     ) : (
                       <Link
-                        to="/login"
+                        to="/user/login"
                         className="py-2 px-4 bg-gray-500 text-white text-sm font-medium rounded-lg hover:bg-gray-600 transition-colors"
                       >
                         Login to Write Review
@@ -688,7 +694,7 @@ const ProductDetailPage = () => {
                       <p className="text-gray-500">No reviews yet. Be the first to review this product!</p>
                       {!isLoggedIn && (
                         <p className="text-sm text-gray-400 mt-2">
-                          <Link to="/login" className="text-primary-500 hover:underline">
+                          <Link to="/user/login" className="text-primary-500 hover:underline">
                             Login
                           </Link> to write a review
                         </p>
